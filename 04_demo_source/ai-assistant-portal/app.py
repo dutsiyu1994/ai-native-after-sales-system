@@ -1,231 +1,296 @@
+"""AI native after-sales service system portal.
+
+The portal is a navigation and architecture console. It shows six business
+demos through the production workflow layers:
+customer entry -> AI orchestration -> case center -> operations backend ->
+2.0 optimization.
 """
-AI native 售后服务系统控制台 — 生产型统一入口
-=================================================================
 
-主需求是可应用于真实生产环境的售后服务功能闭环，面试展示只是次级需求。
-系统由 1 个对客沟通输入端、5 个业务能力模块和 1 个统一控制台组成。
-"""
+from __future__ import annotations
 
-import os as _os
-import sys
-
-# ---------- path setup ----------
-# 本地: D:/job3.0/
-# 线上 Streamlit Cloud: /mount/src/ai-native-after-sales-system/
-_SHARED = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), "..", ".."))
-if _SHARED not in sys.path:
-    sys.path.insert(0, _SHARED)
+import os
+from dataclasses import dataclass
 
 import streamlit as st
-from datetime import datetime
-import json
 
-# ---------- 导入共享模块，带调试保护 ----------
-try:
-    from ai_native_shared.case_store import list_cases, count_cases, get_case, export_cases_as_json
-    from ai_native_shared.metrics_engine import compute_metrics
-    from ai_native_shared.feedback_store import get_events, count_by_type, count_by_priority, get_unresolved, resolve_event
-    from ai_native_shared.insight_engine import generate_insights
-except ImportError as _e:
-    st.error(f"导入 ai_native_shared 失败: {_e}")
-    st.info(f"当前 sys.path: {sys.path}")
-    st.info(f"__file__: {__file__}")
-    st.info(f"SHARED_PATH: {_SHARED}")
-    st.stop()
 
 st.set_page_config(
-    page_title="AI native 售后服务系统控制台",
+    page_title="AI native 售后服务系统门户",
     page_icon="AI",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-SYSTEMS = [
+
+@dataclass(frozen=True)
+class DemoLink:
+    name: str
+    url_key: str
+    default_url: str
+    layer: str
+    purpose: str
+    input_text: str
+    output_text: str
+    boundary: str
+
+    @property
+    def url(self) -> str:
+        return os.getenv(self.url_key, self.default_url)
+
+
+@dataclass(frozen=True)
+class Layer:
+    title: str
+    subtitle: str
+    items: tuple[str, ...]
+    demos: tuple[str, ...]
+    system_meaning: str
+
+
+DEMOS = {
+    "对客沟通机器人": DemoLink(
+        name="对客沟通机器人",
+        url_key="CUSTOMER_AGENT_URL",
+        default_url="https://customer-agent-demo.streamlit.app/",
+        layer="客户入口 / AI 服务编排层",
+        purpose="承接客户自然语言输入，创建 case，完成多轮补槽、风险判断和转人工决策。",
+        input_text="客户问题、订单号、时间、诉求、凭证、历史上下文",
+        output_text="case_id、intent、slots、risk_tags、next_action、handoff_summary",
+        boundary="不自动承诺退款、赔付、改签或监管结论。",
+    ),
+    "RAG 知识库": DemoLink(
+        name="RAG 知识库",
+        url_key="SERVICE_RAG_URL",
+        default_url="https://service-rag-msydemo.streamlit.app/",
+        layer="AI 服务编排层 / 运营后台",
+        purpose="为 AI 判断和客服处理提供 SOP、政策、风险规则和知识引用依据。",
+        input_text="客户问题、case 意图、风险标签、业务场景",
+        output_text="knowledge_refs、evidence_status、human_confirm_required",
+        boundary="知识未命中或冲突时不强答，高风险场景要求人工确认。",
+    ),
+    "客诉智能分类": DemoLink(
+        name="客诉智能分类",
+        url_key="COMPLAINT_CLASSIFIER_URL",
+        default_url="https://complaint-classifier-demo.streamlit.app/",
+        layer="AI 服务编排层 / Case 中台",
+        purpose="将非结构化投诉转成问题类别、优先级和建议路由。",
+        input_text="客户文本、历史摘要、来源渠道",
+        output_text="category、priority、routing_label、suggested_action",
+        boundary="低置信分类进入人工复核，不直接作为最终责任判断。",
+    ),
+    "VOC 风险识别": DemoLink(
+        name="VOC 风险识别",
+        url_key="VOC_RISK_URL",
+        default_url="https://voc-risk-detector-demo.streamlit.app/",
+        layer="AI 服务编排层 / 运营后台 / 2.0 优化层",
+        purpose="识别监管投诉、赔付争议、舆情扩散、批量异常和重复未解决问题。",
+        input_text="case 文本、风险词、时间趋势、批量反馈",
+        output_text="risk_level、risk_tags、trend_signal、alert_reason",
+        boundary="风险预警只触发优先级和人工介入，不替代业务责任决策。",
+    ),
+    "服务事件摘要": DemoLink(
+        name="服务事件摘要",
+        url_key="SUMMARY_SYSTEM_URL",
+        default_url="https://summary-system-demo.streamlit.app/",
+        layer="Case 中台 / 运营后台",
+        purpose="将对话、日志和处理动作压缩成结构化摘要，支撑交接和回填。",
+        input_text="客户对话、AI 判断、人工处理记录",
+        output_text="case_summary、key_facts、pending_items、followup_notes",
+        boundary="摘要用于辅助回填和交接，关键结论仍需人工确认。",
+    ),
+    "客服对话质检": DemoLink(
+        name="客服对话质检",
+        url_key="QUALITY_EVALUATOR_URL",
+        default_url="https://cs-quality-evaluator-demo.streamlit.app/",
+        layer="运营后台 / 2.0 优化层",
+        purpose="从准确性、同理心、流程合规和承诺边界等维度评估服务质量。",
+        input_text="AI/人工回复、case 摘要、知识引用、处理结果",
+        output_text="quality_score、issue_tags、rewrite_suggestion、badcase_reason",
+        boundary="自动质检负责发现疑点，争议样本进入人工复核。",
+    ),
+}
+
+
+LAYERS = [
+    Layer(
+        title="客户入口",
+        subtitle="Web Chat / 小程序 / 企业微信 / Zendesk / 飞书客服",
+        items=(
+            "接收客户自然语言售后问题",
+            "识别客户身份、渠道和会话来源",
+            "收集订单、物流、售后诉求和凭证",
+        ),
+        demos=("对客沟通机器人",),
+        system_meaning="这是整个系统的信息输入端，目标是把客户原始表达转成可处理的服务事件。",
+    ),
+    Layer(
+        title="AI 服务编排层",
+        subtitle="意图识别 / 多轮补槽 / RAG 知识检索 / 风险判断 / 标准答复 / 转人工",
+        items=(
+            "识别 intent、slots、risk_tags 和客户情绪",
+            "根据知识依据生成标准答复或继续追问",
+            "高风险、低置信、政策冲突场景触发人工接管",
+        ),
+        demos=("对客沟通机器人", "RAG 知识库", "客诉智能分类", "VOC 风险识别"),
+        system_meaning="这一层不是脚本自动化，而是把服务判断拆成可审计的 AI 决策流。",
+    ),
+    Layer(
+        title="Case 中台",
+        subtitle="case_id / 用户信息 / 订单字段 / 对话历史 / 风险标签 / 知识引用 / 人工记录 / 处理结果",
+        items=(
+            "用 case_id 串联客户消息、AI 判断和人工处理",
+            "沉淀订单、物流、售后字段和知识引用",
+            "保留人工接管记录、处理结果和状态变化",
+        ),
+        demos=("客诉智能分类", "服务事件摘要"),
+        system_meaning="这一层是生产系统的数据底座，避免各模块只做孤立判断。",
+    ),
+    Layer(
+        title="运营后台",
+        subtitle="工单列表 / 人工接管台 / 知识库管理 / 质检审核 / 指标看板 / badcase 反馈",
+        items=(
+            "处理工单队列和高风险人工接管",
+            "管理知识库、质检审核和指标看板",
+            "记录 badcase、人工改写、知识未命中和客户反馈",
+        ),
+        demos=("RAG 知识库", "VOC 风险识别", "服务事件摘要", "客服对话质检"),
+        system_meaning="这一层面向服务团队日常运营，让 AI 输出进入可管理、可复核、可追责流程。",
+    ),
+    Layer(
+        title="2.0 优化层",
+        subtitle="知识未命中分析 / 高频问题发现 / 转人工原因聚类 / 风险误判分析 / Prompt-SOP-知识库优化建议",
+        items=(
+            "从知识未命中、转人工原因和质检低分中发现系统问题",
+            "聚类高频问题、风险误判和流程卡点",
+            "生成 Prompt、SOP、知识库和追问策略优化建议",
+        ),
+        demos=("VOC 风险识别", "客服对话质检"),
+        system_meaning="这一层体现系统从处理问题升级为发现问题、反馈问题并推动优化。",
+    ),
+]
+
+
+SAMPLE_CASES = [
     {
-        "name": "对客沟通机器人",
-        "short": "对客输入",
-        "version": "v1.0",
-        "value": "承接客户自然语言问题，多轮追问必要字段，生成统一 case，识别风险并转人工。",
-        "evidence": "系统信息输入端 — 补足对客 Agent 设计能力。不作为已有生产经验，展示的是对客沟通链路、风险边界和产品验证能力。",
-        "features": ["自然语言输入", "多轮追问", "知识引用", "高风险转人工", "case 上下文"],
-        "scenario": "客户用自然语言描述售后问题后，系统先识别意图和风险，追问必要字段，再决定标准回答或转人工。",
-        "analysis": "把客户原始表达转成意图、槽位、风险标签、知识依据和下一步动作。",
-        "output": "case_id、customer_intent、required_slots、risk_tags、knowledge_refs、handoff_summary、next_action。",
-        "tooling": "规则引擎负责意图识别和风险标签，知识库检索提供 SOP 依据，高风险场景标记人工确认边界。",
-        "url": "https://customer-agent-demo.streamlit.app",
+        "case_id": "CASE-AIR-001",
+        "topic": "航班延误退票赔付，并提到民航局投诉",
+        "layer": "AI 服务编排层 -> 运营后台",
+        "risk": "监管投诉 / 赔付争议",
+        "next_action": "human_handoff",
     },
     {
-        "name": "VOC 智能分类与优先级评估",
-        "short": "分类",
-        "version": "v3.2",
-        "value": "将客诉文本转化为类别、情绪、优先级和处理建议，帮助一线快速分流。",
-        "evidence": "对应携程 AI 智能化投诉系统与投诉业务分类经验。",
-        "features": ["规则/AI 双引擎", "优先级评估", "批量异常检测", "可视化看板"],
-        "scenario": "一线接到大量客诉后，需要快速判断问题类型、紧急程度和处理方向。",
-        "analysis": "把非结构化文本拆成分类标签、情绪、优先级和建议动作。",
-        "output": "分类结果、优先级、处理建议、异常聚集提示。",
-        "tooling": "规则引擎负责稳定分类兜底，AI 模型负责语义理解和复杂表达判断，人工负责低置信度复核。",
-        "url": "https://complaint-classifier-demo.streamlit.app",
+        "case_id": "CASE-LOG-002",
+        "topic": "物流迟迟未更新，第二轮补充订单号",
+        "layer": "客户入口 -> Case 中台",
+        "risk": "信息缺失 / 低风险",
+        "next_action": "ask_followup",
     },
     {
-        "name": "批量异常识别与服务风险预警",
-        "short": "预警",
-        "version": "v3.2",
-        "value": "识别 VOC 聚集、敏感风险和时间异常，把潜在舆情从事后复盘前移到事中预警。",
-        "evidence": "对应携程智慧预警平台与拼多多批量异常客诉处理经验。",
-        "features": ["统计聚类", "敏感词识别", "时间异常检测", "风险报告"],
-        "scenario": "运营需要从大量用户声音中发现正在聚集的问题，而不是逐条人工阅读。",
-        "analysis": "把 VOC 拆成事件类型、聚集程度、时间异常、升级风险和影响范围。",
-        "output": "异常主题、风险等级、趋势判断、响应建议和 Markdown 报告。",
-        "tooling": "统计聚类发现聚集，敏感词规则识别确定性风险，AI 引擎补充语义聚类和根因总结。",
-        "url": "https://voc-risk-detector-demo.streamlit.app",
-    },
-    {
-        "name": "客服对话质量评估",
-        "short": "质检",
-        "version": "v3.2",
-        "value": "围绕识别需求、有效共情、达成一致、承诺回复四个维度评估服务质量。",
-        "evidence": "对应携程 AI 质检平台的业务侧评估标准设计。",
-        "features": ["四维评分", "规则/AI 评估", "雷达图", "问题定位"],
-        "scenario": "质检团队需要把主观的服务好不好拆成可复核、可训练的评价标准。",
-        "analysis": "把对话质量拆成需求识别、共情、方案一致和承诺回复四个维度。",
-        "output": "维度评分、问题定位、改进话术和 badcase 清单。",
-        "tooling": "规则标准保证评分口径稳定，AI 负责理解对话语义，人工质检负责争议样本复核。",
-        "url": "https://cs-quality-evaluator-demo.streamlit.app",
-    },
-    {
-        "name": "服务事件智能摘要",
-        "short": "摘要",
-        "version": "v2.0",
-        "value": "把对话、日志和备注压缩为结构化摘要，降低工单录入和复盘分析成本。",
-        "evidence": "对应携程 AI 自动总结项目，复现 Prompt 约束和格式化输出思路。",
-        "features": ["多源输入", "实体提取", "结构化摘要", "人工评分反馈"],
-        "scenario": "客服处理后需要把分散对话和操作记录整理成后续角色可读的信息。",
-        "analysis": "把长文本拆成事件类型、关键事实、用户诉求、处理动作和待跟进事项。",
-        "output": "结构化摘要、风险等级、关键词保留率和人工评分反馈。",
-        "tooling": "Prompt 约束输出结构，规则提取关键字段，人工评分反馈用于判断摘要是否可用。",
-        "url": "https://summary-system-demo.streamlit.app",
-    },
-    {
-        "name": "客服 SOP 知识库问答",
-        "short": "RAG",
-        "version": "v1.0",
-        "value": "把服务 SOP、质检标准和风险规则转为可检索知识库，输出带引用依据的处理建议。",
-        "evidence": "用于补齐 RAG / 知识库应用证据，展示从规则文档到问答原型的产品转译能力。",
-        "features": ["文档切分", "TF-IDF 检索", "引用依据", "结构化回答"],
-        "scenario": "一线或主管需要快速找到 SOP、风险规则和质检标准中的依据。",
-        "analysis": "把知识文档拆成可检索片段，并将问题匹配到相关规则和历史口径。",
-        "output": "引用依据、判断逻辑、建议动作和人工确认边界。",
-        "tooling": "检索负责找依据，生成负责组织回答，人工负责确认规则适用性和高风险边界。",
-        "url": "https://service-rag-msydemo.streamlit.app",
-    },
-    {
-        "name": "AI native 售后服务系统控制台",
-        "short": "控制台",
-        "version": "v1.0",
-        "value": "统一展示对客输入、分类、预警、质检、摘要和知识服务，作为系统总入口。",
-        "evidence": "把分散 demo 串成一个售后服务系统合集，强调信息流、判断流、人机分工和反馈闭环。",
-        "features": ["统一入口", "模块导航", "链路说明", "价值指标", "闭环展示"],
-        "scenario": "服务负责人或面试官从控制台进入各模块，理解系统如何从客户输入走到人工接管和反馈优化。",
-        "analysis": "把单点能力组织成可解释、可验证的 AI native 售后服务工作流。",
-        "output": "模块入口、工作流、核心指标、1.0/2.0 演进说明。",
-        "tooling": "控制台不替代业务模块，负责组织入口、表达系统边界和串联验证路径。",
-        "url": "https://ai-native-system-msydemo.streamlit.app",
+        "case_id": "CASE-RAG-003",
+        "topic": "咨询自愿退票手续费政策",
+        "layer": "AI 服务编排层 -> RAG 知识检索",
+        "risk": "低风险 / 知识命中",
+        "next_action": "standard_answer",
     },
 ]
 
-WORKFLOW = [
-    ("1", "对客输入", "承接客户自然语言问题，识别意图，多轮追问必要字段"),
-    ("2", "统一 case", "生成 case_id 和结构化上下文，贯穿后续所有模块"),
-    ("3", "知识引用", "RAG 检索 SOP/规则/政策依据，证据不足时不强答"),
-    ("4", "风险判断", "识别监管、赔付、舆情等高风险，触发人工接管"),
-    ("5", "摘要/质检", "生成服务摘要，按 case_id 做四维质检评分"),
-    ("6", "回流优化", "记录 badcase、知识未命中、转人工原因，驱动迭代"),
-]
 
-
-def inject_css():
+def inject_css() -> None:
     st.markdown(
         """
         <style>
-        .block-container { padding-top: 2.2rem; padding-bottom: 2.5rem; }
-        .hero {
-            border: 1px solid #d9e2ec;
-            border-radius: 8px;
-            padding: 28px 30px;
-            background: #f8fafc;
+        .block-container {
+            padding-top: 1.25rem;
+            padding-bottom: 2rem;
+            max-width: 1280px;
         }
-        .hero h1 {
-            margin: 0 0 10px 0;
-            font-size: 34px;
+        h1, h2, h3, p, li, div {
             letter-spacing: 0;
-            color: #102a43;
         }
-        .hero p {
-            margin: 0;
+        .topbar {
+            border-bottom: 1px solid #d9e2ec;
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+        }
+        .topbar h1 {
+            margin: 0 0 6px 0;
+            color: #102a43;
+            font-size: 30px;
+            font-weight: 760;
+        }
+        .muted {
             color: #52606d;
-            font-size: 16px;
-            line-height: 1.7;
-        }
-        .section-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: #102a43;
-            margin: 18px 0 10px 0;
-        }
-        .workflow-step {
-            border: 1px solid #d9e2ec;
-            border-radius: 8px;
-            padding: 14px;
-            min-height: 124px;
-            background: white;
-        }
-        .workflow-index {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #0f766e;
-            color: white;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            line-height: 1.65;
             font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 8px;
         }
-        .system-card {
+        .layer-card {
             border: 1px solid #d9e2ec;
             border-radius: 8px;
-            padding: 20px;
-            background: white;
-            min-height: 290px;
+            background: #ffffff;
+            padding: 16px;
+            margin-bottom: 14px;
         }
-        .system-card h3 {
-            margin-top: 0;
+        .layer-card h3 {
+            margin: 0 0 4px 0;
             color: #102a43;
             font-size: 20px;
         }
-        .muted { color: #627d98; font-size: 14px; line-height: 1.65; }
-        .tag {
+        .demo-card {
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 16px;
+            min-height: 292px;
+            margin-bottom: 14px;
+        }
+        .demo-card h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #102a43;
+            font-size: 19px;
+        }
+        .pill {
             display: inline-block;
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid #b2f5ea;
             background: #e6fffa;
             color: #0f766e;
-            font-size: 13px;
-            margin: 0 6px 6px 0;
-            border: 1px solid #b2f5ea;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 8px;
         }
-        .demo-button {
-            display: block;
-            text-align: center;
-            padding: 10px 12px;
-            border-radius: 8px;
+        .open-link {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 6px;
             background: #0f766e;
-            color: white !important;
+            color: #ffffff !important;
             text-decoration: none;
             font-weight: 700;
-            margin-top: 16px;
+            margin-top: 10px;
+        }
+        .case-row {
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            padding: 12px;
+            background: #ffffff;
+            margin-bottom: 10px;
+        }
+        .risk-high {
+            color: #b42318;
+            font-weight: 700;
+        }
+        .risk-low {
+            color: #0f766e;
+            font-weight: 700;
+        }
+        .band {
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 16px;
+            margin: 14px 0;
         }
         </style>
         """,
@@ -233,500 +298,175 @@ def inject_css():
     )
 
 
-def render_hero():
+def render_header() -> None:
     st.markdown(
         """
-        <div class="hero">
-            <h1>AI native 售后服务系统控制台</h1>
-            <p>
-            主需求是可应用于真实生产环境的售后服务功能闭环，面试展示只是次级需求。
-            系统由 1 个对客沟通输入端、5 个业务能力模块和 1 个统一控制台组成。
-            生产链路：对客输入 → 统一 case → 知识引用 → 风险判断 → 摘要/质检 → 回流优化。
-            </p>
+        <div class="topbar">
+            <h1>AI native 售后服务系统门户</h1>
+            <div class="muted">
+                这不是 6 个 AI 工具的罗列，而是按真实上线逻辑组织的售后服务系统入口。
+                门户只负责展示系统逻辑层、模块入口、case 流转和上线边界；具体能力由 6 个业务 demo 承担。
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 
-def render_metrics():
-    st.markdown('<div class="section-title">1.0 生产指标面板</div>', unsafe_allow_html=True)
-    cols = st.columns(6)
-    cols[0].metric("自动解决率", "≈ 45%", "目标 ≥ 50%")
-    cols[1].metric("转人工率", "≈ 30%", "目标 ≤ 25%")
-    cols[2].metric("字段完整率", "≈ 60%", "目标 ≥ 80%")
-    cols[3].metric("知识命中率", "≈ 75%", "目标 ≥ 85%")
-    cols[4].metric("人工接管时长", "≈ 8 min", "目标 ≤ 5 min")
-    cols[5].metric("客户重复描述率", "≈ 15%", "目标 ≤ 10%")
+def render_kpis() -> None:
+    cols = st.columns(5)
+    cols[0].metric("逻辑层", "5", "入口到优化")
+    cols[1].metric("业务 demo", "6", "门户统一导航")
+    cols[2].metric("核心对象", "case_id", "贯穿全链路")
+    cols[3].metric("高风险策略", "转人工", "赔付/监管/舆情")
+    cols[4].metric("2.0 方向", "自主优化", "发现-反馈-改进")
 
 
-def render_workflow():
-    st.markdown('<div class="section-title">1.0 生产工作流链路</div>', unsafe_allow_html=True)
-    cols = st.columns(6)
-    for col, (index, title, desc) in zip(cols, WORKFLOW):
-        with col:
-            st.markdown(
-                f"""
-                <div class="workflow-step">
-                    <div class="workflow-index">{index}</div>
-                    <div><strong>{title}</strong></div>
-                    <div class="muted">{desc}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-
-def render_system_card(system):
-    tags = "".join(f'<span class="tag">{feature}</span>' for feature in system["features"])
+def render_layer(layer: Layer) -> None:
+    demo_tags = "".join(f'<span class="pill">{demo}</span>' for demo in layer.demos)
+    items = "".join(f"<li>{item}</li>" for item in layer.items)
     st.markdown(
         f"""
-        <div class="system-card">
-            <h3>{system["short"]} · {system["name"]}</h3>
-            <div class="muted"><strong>{system["version"]}</strong> | 本地 Streamlit | 默认规则引擎无需 API Key</div>
-            <p>{system["value"]}</p>
-            <div class="muted"><strong>使用场景：</strong>{system["scenario"]}</div>
-            <div class="muted"><strong>分析需求：</strong>{system["analysis"]}</div>
-            <div class="muted"><strong>功能输出：</strong>{system["output"]}</div>
-            <div class="muted"><strong>AI/工具调配：</strong>{system["tooling"]}</div>
-            <div class="muted">{system["evidence"]}</div>
-            <div style="margin-top:14px;">{tags}</div>
-            <a class="demo-button" href="{system["url"]}" target="_blank">打开模块</a>
+        <div class="layer-card">
+            <h3>{layer.title}</h3>
+            <div class="muted"><strong>{layer.subtitle}</strong></div>
+            <ul>{items}</ul>
+            <div class="muted"><strong>系统意义：</strong>{layer.system_meaning}</div>
+            <div style="margin-top:10px;">{demo_tags}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 
-def render_systems():
-    st.markdown('<div class="section-title">1.0 系统模块</div>', unsafe_allow_html=True)
-    for row_start in range(0, len(SYSTEMS), 2):
+def render_architecture() -> None:
+    st.subheader("系统逻辑层")
+    for layer in LAYERS:
+        render_layer(layer)
+
+
+def render_demo_card(demo: DemoLink) -> None:
+    st.markdown(
+        f"""
+        <div class="demo-card">
+            <span class="pill">{demo.layer}</span>
+            <h3>{demo.name}</h3>
+            <div class="muted"><strong>职责：</strong>{demo.purpose}</div>
+            <div class="muted"><strong>输入：</strong>{demo.input_text}</div>
+            <div class="muted"><strong>输出：</strong>{demo.output_text}</div>
+            <div class="muted"><strong>边界：</strong>{demo.boundary}</div>
+            <a class="open-link" href="{demo.url}" target="_blank">打开 demo</a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_demos() -> None:
+    st.subheader("6 个业务 demo 入口")
+    demo_values = list(DEMOS.values())
+    for start in range(0, len(demo_values), 2):
         cols = st.columns(2)
         for offset, col in enumerate(cols):
-            index = row_start + offset
-            if index < len(SYSTEMS):
+            index = start + offset
+            if index < len(demo_values):
                 with col:
-                    render_system_card(SYSTEMS[index])
+                    render_demo_card(demo_values[index])
 
 
-def render_notes():
-    st.markdown('<div class="section-title">1.0 与 2.0 版本路线</div>', unsafe_allow_html=True)
+def render_case_flow() -> None:
+    st.subheader("Case 流转示例")
+    st.caption("这里展示的是后台应如何把客户问题映射到 case、风险、知识和人工动作。")
+    for case in SAMPLE_CASES:
+        high_risk = "监管" in case["risk"] or "赔付" in case["risk"]
+        risk_class = "risk-high" if high_risk else "risk-low"
+        st.markdown(
+            f"""
+            <div class="case-row">
+                <strong>{case["case_id"]}</strong>
+                <div class="muted">客户问题：{case["topic"]}</div>
+                <div class="muted">流转层级：{case["layer"]}</div>
+                <div class="{risk_class}">风险：{case["risk"]}</div>
+                <div class="muted">下一步动作：{case["next_action"]}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_launch_logic() -> None:
+    st.subheader("上线逻辑与边界")
+    st.markdown(
+        """
+        | 层级 | 当前展示方式 | 真实生产要补齐 |
+        | --- | --- | --- |
+        | 客户入口 | 对客机器人 demo | 真实渠道接入、身份鉴权、会话持久化 |
+        | AI 服务编排层 | 对客机器人、RAG、分类、VOC demo | 统一 Agent 决策服务、模型日志、置信度和安全策略 |
+        | Case 中台 | 门户用样例 case 呈现 | 数据库、状态机、字段模型、人工接管记录 |
+        | 运营后台 | RAG、摘要、质检、VOC demo | 工单队列、权限、审计、指标看板、知识发布流程 |
+        | 2.0 优化层 | VOC 和质检展示方向 | 聚类、归因、优化建议、审批、灰度和效果追踪 |
+        """
+    )
+    st.markdown(
+        """
+        <div class="band">
+            <strong>表达边界：</strong>
+            当前系统是生产逻辑原型，不表述为已经接入真实客户系统。
+            可强调已经具备完整上线逻辑理解：输入端、编排层、case 中台、运营后台和 2.0 优化闭环。
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_ai_native_logic() -> None:
+    st.subheader("AI native 口径")
     col1, col2 = st.columns(2)
     with col1:
-        with st.container(border=True):
-            st.markdown(
-                """
-                **1.0：生产可落地版本**
-
-                - ✅ 对客沟通机器人（系统信息输入端）
-                - ✅ 统一 case_id 和结构化上下文
-                - ✅ RAG 知识引用和证据不足不强答
-                - ✅ 高风险转人工 + 转人工包
-                - ✅ 服务摘要 + 结构质检
-                - ✅ 基础监控指标
-                - ✅ badcase 回流记录
-                """
-            )
-    with col2:
-        with st.container(border=True):
-            st.markdown(
-                """
-                **2.0：自主优化版本（规划）**
-
-                - 🔲 自主问题发现（聚合重复咨询和知识未命中）
-                - 🔲 自动归因（知识缺口/规则冲突/流程卡点/话术问题）
-                - 🔲 优化建议生成（知识补充/SOP修订/Prompt调整）
-                - 🔲 反馈闭环看板（发现→归因→动作→验证）
-                - 🔲 追问策略自优化 + 知识健康自检
-                - 🔲 灰度验证和回滚机制
-                """
-            )
-
-    st.markdown('<div class="section-title">产品思维拆解方式</div>', unsafe_allow_html=True)
-    with st.container(border=True):
         st.markdown(
             """
-            | 产品拆解层 | 展示重点 |
-            |---|---|
-            | 业务场景 | 谁在什么业务节点遇到什么问题 |
-            | 功能需求 | 需要系统判断、提取、监控或沉淀什么 |
-            | AI/工具调配 | 哪些交给规则，哪些交给 AI，哪些保留人工复核 |
-            | 输出设计 | 给一线、主管或运营什么结果，是否可导出、可复盘 |
-            | 验证指标 | 用准确性、误伤/漏报、处理时长、人工修改原因或保留比例验证 |
+            **反对的方式**
+
+            - 把客服脚本自动化后包装成 AI。
+            - 只展示单点工具提效。
+            - 让模型直接替代人工责任判断。
+            - 每个 demo 各自为政，没有统一 case。
             """
         )
-
-    st.markdown('<div class="section-title">使用说明</div>', unsafe_allow_html=True)
-    with st.container(border=True):
+    with col2:
         st.markdown(
             """
-            - 默认规则/统计引擎无需 API Key，可直接展示完整流程。
-            - 样例数据为模拟/脱敏数据，不包含真实用户隐私。
-            - 本系统以真实生产可落地为目标，面试展示只是次级需求。
-            - 不接真实客服系统、CRM 或用户数据，不包装成已有生产上线经验。
+            **这套系统的方式**
+
+            - AI 重新组织服务信息流和判断流。
+            - case_id 串联客户、知识、风险、人工和质检。
+            - 人机分工明确，高风险必须人工接管。
+            - badcase、知识缺口、质检低分进入反馈闭环。
             """
         )
 
 
-def render_case_list_page():
-    """Case 列表页 — 筛选、搜索、查看详情、导出。"""
-    st.subheader("📋 Case 列表")
-
-    # ── 筛选栏 ──
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        intent_filter = st.selectbox(
-            "意图筛选",
-            ["全部", "refund_compensation_complaint", "logistics_inquiry",
-             "regulatory_complaint", "general_inquiry"],
-            key="cs_intent",
-        )
-    with col2:
-        risk_filter = st.text_input("🏷️ 风险标签筛选", placeholder="如 compensation", key="cs_risk")
-    with col3:
-        date_from = st.date_input("开始日期", value=None, key="cs_df")
-    with col4:
-        date_to = st.date_input("结束日期", value=None, key="cs_dt")
-
-    # ── 构建筛选参数 ──
-    params = {}
-    if intent_filter and intent_filter != "全部":
-        params["intent_filter"] = intent_filter
-    if risk_filter:
-        params["risk_filter"] = risk_filter
-    if date_from:
-        params["date_from"] = date_from.strftime("%Y-%m-%d")
-    if date_to:
-        params["date_to"] = date_to.strftime("%Y-%m-%d")
-
-    # ── 分页 ──
-    PAGE_SIZE = 20
-    total = count_cases(**params)
-    max_page = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
-    page = st.number_input("页码", min_value=1, max_value=max_page, value=1, key="cs_page")
-    offset = (page - 1) * PAGE_SIZE
-
-    cases = list_cases(limit=PAGE_SIZE, offset=offset, **params)
-
-    if not cases:
-        st.info("暂无 case 记录。请先在「对客沟通机器人」中处理客户问题。")
-        # ── 导出按钮（仅在有数据时显示） ──
-        return
-
-    # ── 统计条 ──
-    st.caption(f"共 {total} 条记录，当前显示 {len(cases)} 条")
-
-    # ── 表格展示 ──
-    for c in cases:
-        with st.container(border=True):
-            cols = st.columns([2, 3, 2, 2, 3])
-            with cols[0]:
-                expand_label = c["case_id"]
-                st.markdown(f"**{expand_label}**")
-            cols[1].markdown(
-                c.get("customer_message", c.get("conversation", [{}])[0].get("content", ""))[:80] + "..."
-                if c.get("customer_message") or c.get("conversation") else "—"
-            )
-            cols[2].markdown(f"`{c.get('customer_intent', '—')}`")
-
-            # 风险标签
-            risk_tags = c.get("risk_tags", [])
-            if risk_tags:
-                risk_str = ", ".join(risk_tags[:2])
-                if len(risk_tags) > 2:
-                    risk_str += "…"
-                cols[3].markdown(f"⚠️ {risk_str}")
-            else:
-                cols[3].markdown("—")
-
-            cols[4].markdown(f"🕐 {c.get('created_at', '—')}")
-
-            # 展开详情
-            with st.expander("查看完整 Case 上下文"):
-                st.json(c)
-
-    # ── 导出按钮 ──
-    if st.button("📥 导出当前筛选结果为 JSON"):
-        json_str = json.dumps(cases, ensure_ascii=False, indent=2)
-        now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        st.download_button(
-            "下载 JSON",
-            json_str,
-            file_name=f"cases_export_{now_str}.json",
-            mime="application/json",
-        )
-
-
-def render_metrics_page():
-    """生产指标面板 — 基于持久化 case 数据实时计算"""
-    st.subheader("📊 生产指标")
-    st.caption("基于 case_store 中持久化的 case 数据实时计算")
-
-    # 读取全部 case
-    cases = list_cases(limit=1000)
-
-    if not cases or len(cases) < 3:
-        st.info("等待更多数据积累。至少需要 3 条 case 才能展示有意义的指标。")
-        st.caption(f"当前共 {len(cases)} 条 case")
-        return
-
-    metrics = compute_metrics(cases)
-
-    # 顶部 KPI 卡片（4 列）
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("自动解决率", f"{metrics['auto_resolve_rate']:.1f}%",
-                help="next_action=standard_answer 的 case 占比")
-    col2.metric("转人工率", f"{metrics['handoff_rate']:.1f}%",
-                help="next_action=human_handoff 的 case 占比")
-    col3.metric("知识命中率", f"{metrics['knowledge_hit_rate']:.1f}%",
-                help="knowledge_refs 非空的 case 占比")
-    col4.metric("字段完整率", f"{metrics['field_completion_rate']:.1f}%",
-                help="所有 case 的槽位收集完整度均值")
-
-    st.caption(f"基于 {metrics['total_cases']} 条 case 计算")
-
-    # 转人工原因分布
-    if metrics.get("handoff_reasons"):
-        st.subheader("🔄 转人工原因分布")
-        st.bar_chart(metrics["handoff_reasons"])
-
-    # 风险标签分布
-    if metrics.get("risk_tag_distribution"):
-        st.subheader("⚠️ 风险标签分布")
-        st.bar_chart(metrics["risk_tag_distribution"])
-
-    # 每日 case 趋势
-    if metrics.get("daily_case_trends"):
-        st.subheader("📈 每日 Case 趋势")
-        st.line_chart(metrics["daily_case_trends"])
-
-    # 底部指标说明
-    with st.expander("📋 指标定义与口径"):
-        st.markdown("""
-        | 指标 | 定义 | 数据来源 |
-        |------|------|----------|
-        | 自动解决率 | next_action=standard_answer 的 case / 总 case | case_store.next_action |
-        | 转人工率 | next_action=human_handoff 的 case / 总 case | case_store.next_action |
-        | 知识命中率 | knowledge_refs 非空的 case / 总 case | case_store.knowledge_refs |
-        | 字段完整率 | 所有 case 的 provided_slots / total_slots 均值 | case_store.slot_status |
-        | 转人工原因 | handoff_reason 类 feedback_event 的分组计数 | case_store.feedback_events |
-        | 风险标签 | risk_tags 中每个标签的出现次数 | case_store.risk_tags |
-        | 每日趋势 | 按 created_at 日期聚合的 case 数量 | case_store.created_at |
-        """)
-
-
-def render_feedback_events_page():
-    """反馈事件页面 — 展示、筛选、标记解决。"""
-    st.subheader("📝 反馈事件")
-
-    # ── 顶部 KPI 栏 ──
-    type_counts = count_by_type()
-    priority_counts = count_by_priority()
-    unresolved = get_unresolved(limit=1)
-    total = sum(type_counts.values()) if type_counts else 0
-    unresolved_count = len(unresolved) if unresolved else 0
-
-    if total == 0:
-        st.info("暂无反馈事件。请先在「对客沟通机器人」中处理客户问题产生反馈。")
-        return
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("事件总数", total)
-    col2.metric("未解决数", unresolved_count)
-    with col3:
-        if type_counts:
-            top_type = max(type_counts, key=type_counts.get)
-            st.metric("最多类型", f"{top_type} ({type_counts[top_type]})")
-
-    st.markdown("---")
-
-    # ── 筛选栏 ──
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        event_type_filter = st.selectbox(
-            "事件类型",
-            ["全部", "knowledge_miss", "handoff_reason", "human_rewrite",
-             "quality_low_score", "inquiry_failure"],
-            key="fb_type",
-        )
-    with col2:
-        priority_filter = st.selectbox(
-            "优先级",
-            ["全部", "P0", "P1", "P2", "P3"],
-            key="fb_pri",
-        )
-    with col3:
-        case_id_filter = st.text_input("Case ID", placeholder="输入 case_id 筛选", key="fb_case")
-    with col4:
-        resolved_filter = st.selectbox(
-            "解决状态",
-            ["全部", "未解决", "已解决"],
-            key="fb_res",
-        )
-
-    # ── 构建查询参数 ──
-    params = {}
-    if event_type_filter and event_type_filter != "全部":
-        params["event_type"] = event_type_filter
-    if priority_filter and priority_filter != "全部":
-        params["priority"] = priority_filter
-    if case_id_filter and case_id_filter.strip():
-        params["case_id"] = case_id_filter.strip()
-    if resolved_filter == "未解决":
-        params["is_resolved"] = 0
-    elif resolved_filter == "已解决":
-        params["is_resolved"] = 1
-
-    # ── 分页 ──
-    PAGE_SIZE = 20
-    filter_params = {k: v for k, v in params.items()
-                     if k in ("event_type", "priority", "is_resolved", "case_id")}
-    all_events = get_events(limit=1000, **filter_params)
-    total = len(all_events)
-    max_page = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
-    page = st.number_input("页码", min_value=1, max_value=max_page, value=1,
-                           key="fb_page")
-    offset = (page - 1) * PAGE_SIZE
-
-    events = get_events(limit=PAGE_SIZE, offset=offset, **filter_params)
-
-    if not events:
-        st.caption("没有匹配的事件。")
-        return
-
-    st.caption(f"共 {total} 条记录，当前显示 {len(events)} 条（按创建时间倒序）")
-
-    # ── 事件列表 ──
-    for ev in events:
-        priority_label = {"P0": "🔴 P0", "P1": "🟠 P1", "P2": "🟡 P2", "P3": "🟢 P3"}
-        resolved_label = "✅ 已解决" if ev["is_resolved"] else "⏳ 未解决"
-
-        with st.container(border=True):
-            cols = st.columns([1, 3, 1, 1, 1])
-            with cols[0]:
-                st.markdown(f"**{priority_label.get(ev['priority'], ev['priority'])}**")
-            with cols[1]:
-                st.markdown(f"**{ev['event_type']}** — {ev['description'][:120]}")
-                st.caption(f"来源: {ev['source_module']} | Case: `{ev['case_id']}` | {ev['created_at']}")
-            with cols[2]:
-                st.markdown(f"根因: {ev.get('root_cause', '—')}")
-            with cols[3]:
-                st.markdown(resolved_label)
-            with cols[4]:
-                if not ev["is_resolved"]:
-                    if st.button("✅ 标记解决", key=f"resolve_{ev['id']}"):
-                        resolve_event(ev["id"])
-                        st.rerun()
-
-            with st.expander("查看详情"):
-                if ev.get("suggested_action"):
-                    st.markdown(f"**建议动作**: {ev['suggested_action']}")
-                st.json(dict(ev))
-
-
-def render_insights_page():
-    """2.0 优化任务页面 — 展示自动聚合的优化洞察。"""
-    st.subheader("🔍 2.0 优化任务 — 自主问题发现")
-    st.caption("基于 feedback_store 和 case_store 数据自动聚合，发现优化机会。")
-
-    # 1. 读取数据
-    feedback_events = get_events(limit=5000)
-
-    if not feedback_events:
-        st.info("暂无反馈事件数据。请在「对客沟通机器人」中处理客户问题，积累足够数据后自动生成洞察。")
-        return
-
-    # 2. 读取 cases（用于关联）
-    cases = list_cases(limit=1000)
-
-    # 3. 生成 insights
-    insights = generate_insights(feedback_events, cases)
-
-    # 4. 展示
-    if not insights:
-        st.info("当前数据未发现显著模式。至少需要同一类型事件出现 2 次以上才会生成优化任务。")
-        return
-
-    # 5. 顶部分类统计
-    type_counts = {}
-    for ins in insights:
-        t = ins["issue_type"]
-        type_counts[t] = type_counts.get(t, 0) + 1
-
-    type_labels = {
-        "knowledge_gap": "📚 知识缺口",
-        "rule_conflict": "⚠️ 规则冲突",
-        "process_block": "🔒 流程卡点",
-        "prompt_issue": "💬 追问策略",
-        "quality_issue": "⭐ 质检低分",
-    }
-
-    cols = st.columns(5)
-    for col, (t, label) in zip(cols, type_labels.items()):
-        with col:
-            count = type_counts.get(t, 0)
-            st.metric(label, count)
-
-    st.markdown("---")
-
-    # 6. 列表展示（按热点分数排序）
-    priority_weight = {"P0": 3, "P1": 2, "P2": 1}
-
-    def hotscore(ins):
-        return ins["source_events_count"] * priority_weight.get(ins["priority"], 1)
-
-    sorted_insights = sorted(insights, key=hotscore, reverse=True)
-
-    for ins in sorted_insights:
-        with st.container(border=True):
-            priority_label = {"P0": "🔴 P0", "P1": "🟠 P1", "P2": "🟡 P2"}
-            issue_icon = type_labels.get(ins["issue_type"], "📌")
-
-            cols = st.columns([2, 1, 1, 1, 1, 2])
-            with cols[0]:
-                st.markdown(f"**{issue_icon} {ins['title']}**")
-                st.caption(f"类型: {ins['issue_type']} | ID: {ins['id']}")
-            with cols[1]:
-                st.markdown(f"📄 {ins['description'][:100]}…" if len(ins['description']) > 100 else f"📄 {ins['description']}")
-            with cols[2]:
-                st.markdown(f"**{ins['source_events_count']}** 个事件")
-            with cols[3]:
-                st.markdown(priority_label.get(ins["priority"], ins["priority"]))
-            with cols[4]:
-                score = hotscore(ins)
-                st.markdown(f"🔥 热点分: {score}")
-            with cols[5]:
-                st.markdown(f"💡 {ins['suggested_action'][:60]}…")
-
-            # 折叠展开
-            with st.expander("查看建议动作和关联 Case"):
-                st.markdown(f"**💡 建议动作**: {ins['suggested_action']}")
-                if ins.get("related_case_ids"):
-                    st.markdown(f"**🔗 关联 Case**: {', '.join(ins['related_case_ids'][:10])}")
-                    if len(ins["related_case_ids"]) > 10:
-                        st.caption(f"...以及另外 {len(ins['related_case_ids']) - 10} 个 case")
-                st.json(ins)
-
-
-def main():
+def main() -> None:
     inject_css()
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏠 控制台", "📋 Case 列表", "📊 生产指标", "📝 反馈事件", "🔍 2.0 优化任务"])
-    with tab1:
-        render_hero()
-        st.write("")
-        render_metrics()
-        render_workflow()
-        render_systems()
-        render_notes()
-    with tab2:
-        render_case_list_page()
-    with tab3:
-        render_metrics_page()
-    with tab4:
-        render_feedback_events_page()
-    with tab5:
-        render_insights_page()
-    st.caption("本地 Streamlit 应用需先运行 start-local-demos.bat 启动各模块。")
+    render_header()
+    render_kpis()
+
+    tab_arch, tab_demos, tab_cases, tab_launch = st.tabs(
+        ["系统架构", "demo 入口", "case 流转", "上线逻辑"]
+    )
+
+    with tab_arch:
+        render_architecture()
+        render_ai_native_logic()
+
+    with tab_demos:
+        render_demos()
+
+    with tab_cases:
+        render_case_flow()
+
+    with tab_launch:
+        render_launch_logic()
 
 
 if __name__ == "__main__":
