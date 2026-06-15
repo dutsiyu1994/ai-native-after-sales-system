@@ -56,14 +56,23 @@ st.set_page_config(
 # ---------- API Key 安全读取 (Task 1) ----------
 
 def get_secret_value(name: str, default: str | None = None) -> str | None:
-    """从 Streamlit secrets 优先，再 fallback 到环境变量."""
+    """从 Streamlit secrets / HF Spaces secrets / 环境变量读取."""
+    # HF Spaces injects secrets into st.secrets directly
     try:
-        value = st.secrets.get(name)  # type: ignore[attr-defined]
-        if value:
-            return str(value)
+        if name in st.secrets:
+            value = st.secrets[name]
+            if value:
+                return str(value)
     except Exception:
         pass
-    return _os.getenv(name, default)
+    # Fallback: regular env var
+    from os import getenv
+    return getenv(name, default)
+
+
+def get_api_key() -> str | None:
+    """每次调用时动态读取，不缓存 import 时的值."""
+    return get_secret_value("DEEPSEEK_API_KEY")
 
 
 # ---------- LLM provider configs ----------
@@ -73,7 +82,6 @@ LLM_PROVIDERS = {
         "icon": "🐋",
         "model": "deepseek-chat",
         "base_url": "https://api.deepseek.com/v1",
-        "api_key": get_secret_value("DEEPSEEK_API_KEY"),
         "description": "中文能力最强",
     },
     "ollama": {
@@ -286,11 +294,14 @@ def build_handoff_summary(user_msg: str, slots: dict, risks: list[str], hits: li
 
 def call_llm(provider_key: str, messages: list[dict]) -> str | None:
     cfg = LLM_PROVIDERS.get(provider_key)
-    if not cfg or not cfg["model"] or not cfg.get("api_key"):
+    if not cfg or not cfg["model"]:
+        return None
+    api_key = get_api_key() if provider_key == "deepseek" else cfg.get("api_key")
+    if not api_key:
         return None
     try:
         from openai import OpenAI
-        client = OpenAI(api_key=cfg["api_key"], base_url=cfg["base_url"])
+        client = OpenAI(api_key=api_key, base_url=cfg["base_url"])
         response = client.chat.completions.create(
             model=cfg["model"],
             messages=messages,
@@ -555,8 +566,16 @@ def render_sidebar():
 
     # 显示 Key 状态
     if provider == "deepseek":
-        key_status = "已配置" if LLM_PROVIDERS["deepseek"].get("api_key") else "未配置"
-        st.sidebar.caption(f"DeepSeek API Key：{key_status}  |  配置方式：环境变量 DEEPSEEK_API_KEY 或 Streamlit secrets")
+        key_status = "已配置" if get_api_key() else "未配置"
+        st.sidebar.caption(f"DeepSeek API Key：{key_status}")
+        # Debug: show secret/env availability (no actual key value)
+        from os import getenv as _getenv
+        has_env = bool(_getenv("DEEPSEEK_API_KEY"))
+        try:
+            has_st = "DEEPSEEK_API_KEY" in st.secrets
+        except Exception:
+            has_st = False
+        st.sidebar.caption(f"st.secrets: {'有' if has_st else '无'} | 环境变量: {'有' if has_env else '无'}")
 
     if provider == "rule-only":
         st.sidebar.warning("纯规则模式，回复基础。建议选 DeepSeek 并配置 API Key。")
