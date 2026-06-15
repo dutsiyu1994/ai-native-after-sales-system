@@ -51,7 +51,7 @@ DEMOS = {
     "对客沟通机器人": DemoLink(
         name="对客沟通机器人",
         url_key="CUSTOMER_AGENT_URL",
-        default_url="https://customer-agent-demo.streamlit.app/",
+        default_url="https://customer-agent-msydemo.streamlit.app/",
         layer="客户入口 / AI 服务编排层",
         purpose="承接客户自然语言输入，创建 case，完成多轮补槽、风险判断和转人工决策。",
         input_text="客户问题、订单号、时间、诉求、凭证、历史上下文",
@@ -61,7 +61,7 @@ DEMOS = {
     "RAG 知识库": DemoLink(
         name="RAG 知识库",
         url_key="SERVICE_RAG_URL",
-        default_url="https://service-rag-msydemo.streamlit.app/",
+        default_url="https://service-rag-demo-msydemo.streamlit.app/",
         layer="AI 服务编排层 / 运营后台",
         purpose="为 AI 判断和客服处理提供 SOP、政策、风险规则和知识引用依据。",
         input_text="客户问题、case 意图、风险标签、业务场景",
@@ -71,7 +71,7 @@ DEMOS = {
     "客诉智能分类": DemoLink(
         name="客诉智能分类",
         url_key="COMPLAINT_CLASSIFIER_URL",
-        default_url="https://complaint-classifier-demo.streamlit.app/",
+        default_url="https://complaint-classifier-msydemo.streamlit.app/",
         layer="AI 服务编排层 / Case 中台",
         purpose="将非结构化投诉转成问题类别、优先级和建议路由。",
         input_text="客户文本、历史摘要、来源渠道",
@@ -81,7 +81,7 @@ DEMOS = {
     "VOC 风险识别": DemoLink(
         name="VOC 风险识别",
         url_key="VOC_RISK_URL",
-        default_url="https://voc-risk-detector-demo.streamlit.app/",
+        default_url="https://voc-risk-detector-msydemo.streamlit.app/",
         layer="AI 服务编排层 / 运营后台 / 2.0 优化层",
         purpose="识别监管投诉、赔付争议、舆情扩散、批量异常和重复未解决问题。",
         input_text="case 文本、风险词、时间趋势、批量反馈",
@@ -91,7 +91,7 @@ DEMOS = {
     "服务事件摘要": DemoLink(
         name="服务事件摘要",
         url_key="SUMMARY_SYSTEM_URL",
-        default_url="https://summary-system-demo.streamlit.app/",
+        default_url="https://summary-system-msydemo.streamlit.app/",
         layer="Case 中台 / 运营后台",
         purpose="将对话、日志和处理动作压缩成结构化摘要，支撑交接和回填。",
         input_text="客户对话、AI 判断、人工处理记录",
@@ -101,7 +101,7 @@ DEMOS = {
     "客服对话质检": DemoLink(
         name="客服对话质检",
         url_key="QUALITY_EVALUATOR_URL",
-        default_url="https://cs-quality-evaluator-demo.streamlit.app/",
+        default_url="https://cs-quality-evaluator-msydemo.streamlit.app/",
         layer="运营后台 / 2.0 优化层",
         purpose="从准确性、同理心、流程合规和承诺边界等维度评估服务质量。",
         input_text="AI/人工回复、case 摘要、知识引用、处理结果",
