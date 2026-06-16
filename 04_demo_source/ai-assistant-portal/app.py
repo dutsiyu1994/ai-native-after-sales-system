@@ -24,6 +24,7 @@ try:
     from ai_native_shared.service_api import (
         API_ENDPOINTS,
         get_case_detail,
+        get_business_metric_system,
         get_database_health,
         get_ops_dashboard,
         get_ops_metrics,
@@ -1290,6 +1291,77 @@ def render_ops_metrics_dashboard() -> None:
         st.info("暂无优化信号。")
 
 
+def render_business_metric_system() -> None:
+    st.subheader("数据指标体系 / 全链路业务监控")
+    st.caption(
+        "基于 job3.0 的 EXP-004 数据指标体系和全链路服务指标方法，把售后 AI 系统从“能跑”升级为“能监控、能归因、能推动动作”。接口: GET /api/v1/metrics/system"
+    )
+
+    if _SERVICE_API_IMPORT_ERROR:
+        st.warning(f"共享接口层加载失败，无法读取数据指标体系: {_SERVICE_API_IMPORT_ERROR}")
+        return
+
+    payload = get_business_metric_system(
+        fallback_cases=BACKEND_CASES,
+        fallback_events=FEEDBACK_EVENTS,
+    )
+    metric_system = payload["data"]
+    snapshot = metric_system["ops_snapshot"]
+
+    cols = st.columns(5)
+    cols[0].metric("Case 总量", snapshot["case_total"])
+    cols[1].metric("自动解决率", f"{snapshot['auto_resolution_rate']}%")
+    cols[2].metric("转人工率", f"{snapshot['handoff_rate']}%")
+    cols[3].metric("知识覆盖率", f"{snapshot['knowledge_support_rate']}%")
+    cols[4].metric("反馈压力", f"{snapshot['feedback_pressure_rate']}%")
+
+    st.markdown("#### 六层指标地图")
+    layer_cards = []
+    for layer in metric_system["layers"]:
+        metrics = " / ".join(layer["metrics"])
+        layer_cards.append(
+            f"""
+            <div class="ops-card">
+                <div class="case-id">{layer["name"]}</div>
+                <h4>{layer["question"]}</h4>
+                <p class="subtle"><strong>核心指标：</strong>{metrics}</p>
+                <p class="subtle"><strong>业务用途：</strong>{layer["business_use"]}</p>
+            </div>
+            """
+        )
+    st.markdown(f'<div class="ops-grid">{"".join(layer_cards)}</div>', unsafe_allow_html=True)
+
+    st.markdown("#### 指标口径与动作看板")
+    metric_rows = pd.DataFrame(metric_system["metric_rows"])
+    st.dataframe(metric_rows, width="stretch", hide_index=True)
+
+    left, right = st.columns([1.2, 0.8])
+    with left:
+        st.markdown("#### 分层指标状态")
+        status_frame = (
+            metric_rows.groupby(["layer", "status"])
+            .size()
+            .reset_index(name="count")
+            .pivot(index="layer", columns="status", values="count")
+            .fillna(0)
+        )
+        st.bar_chart(status_frame)
+    with right:
+        st.markdown("#### 管理节奏")
+        st.dataframe(pd.DataFrame(metric_system["cadence"]), width="stretch", hide_index=True)
+
+    st.markdown("#### 指标治理规则")
+    for item in metric_system["governance"]:
+        st.markdown(
+            f"""
+            <div class="band">
+                <strong>{item["rule"]}：</strong>{item["detail"]}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def render_launch_logic() -> None:
     st.subheader("上线逻辑与边界")
     st.markdown(
@@ -1347,8 +1419,8 @@ def main() -> None:
     render_header()
     render_kpis()
 
-    tab_arch, tab_demos, tab_cases, tab_ops, tab_metrics, tab_launch = st.tabs(
-        ["系统架构", "demo 入口", "case 流转", "运营后台", "运营指标", "上线逻辑"]
+    tab_arch, tab_demos, tab_cases, tab_ops, tab_metrics, tab_metric_system, tab_launch = st.tabs(
+        ["系统架构", "demo 入口", "case 流转", "运营后台", "运营指标", "数据指标体系", "上线逻辑"]
     )
 
     with tab_arch:
@@ -1366,6 +1438,9 @@ def main() -> None:
 
     with tab_metrics:
         render_ops_metrics_dashboard()
+
+    with tab_metric_system:
+        render_business_metric_system()
 
     with tab_launch:
         render_launch_logic()

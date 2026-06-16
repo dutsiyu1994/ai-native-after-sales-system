@@ -66,6 +66,13 @@ API_ENDPOINTS = [
     },
     {
         "method": "GET",
+        "path": "/api/v1/metrics/system",
+        "name": "get_business_metric_system",
+        "purpose": "return the full after-sales business metric framework from input to optimization loop.",
+        "storage": "metric definitions + cases + feedback_events",
+    },
+    {
+        "method": "GET",
         "path": "/api/v1/system/db-health",
         "name": "get_database_health",
         "purpose": "show database path, table status, record counts, and write readiness.",
@@ -399,6 +406,146 @@ def get_ops_dashboard(
             "feedback_priority_distribution": _count_by(events, "priority"),
             "monitoring_rows": monitoring_rows,
             "optimization_signals": signals,
+        }
+    )
+
+
+def _metric_row(
+    layer: str,
+    metric: str,
+    current: str,
+    target: str,
+    owner: str,
+    action: str,
+    status: str = "watch",
+) -> dict[str, str]:
+    return {
+        "layer": layer,
+        "metric": metric,
+        "current": current,
+        "target": target,
+        "status": status,
+        "owner": owner,
+        "action": action,
+    }
+
+
+def get_business_metric_system(
+    fallback_cases: list[dict[str, Any]] | None = None,
+    fallback_events: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    ops_payload = get_ops_dashboard(
+        fallback_cases=fallback_cases,
+        fallback_events=fallback_events,
+    )
+    ops_data = ops_payload["data"]
+    summary = ops_data["summary"]
+    rates = ops_data["rates"]
+    total = max(summary["case_total"], 1)
+
+    repeat_signal = _percent(summary["unresolved_feedback"], total)
+    qa_coverage = 100.0 if ops_data["feedback_type_distribution"].get("low_quality_score") else 62.0
+    badcase_loop_rate = _percent(summary["unresolved_feedback"], summary["unresolved_feedback"] + 3)
+
+    layers = [
+        {
+            "layer": "Input",
+            "name": "输入层",
+            "question": "问题规模、来源渠道和重复问题是否可见？",
+            "metrics": ["咨询量", "问题类型占比", "重复问题率", "渠道占比"],
+            "business_use": "判断问题是否高频、是否值得 AI 化、是否需要调整入口和分流。",
+        },
+        {
+            "layer": "Recognition",
+            "name": "识别层",
+            "question": "AI/规则是否识别对了意图、风险和知识依据？",
+            "metrics": ["分类准确率", "风险召回率", "知识命中率", "必要字段完整率"],
+            "business_use": "决定是否允许 AI 继续答复、追问字段，还是转人工复核。",
+        },
+        {
+            "layer": "Handling",
+            "name": "处理层",
+            "question": "服务流程是否变短，复杂问题是否被正确升级？",
+            "metrics": ["自动解决率", "转人工率", "一次解决率", "处理时长", "升级率"],
+            "business_use": "衡量 AI 是否真的降低重复处理成本，而不是把用户困在机器人里。",
+        },
+        {
+            "layer": "Quality",
+            "name": "质量层",
+            "question": "AI 和人工输出是否可靠、合规、可复核？",
+            "metrics": ["质检覆盖率", "人工修改率", "误判率", "漏判率", "无依据回答占比"],
+            "business_use": "控制越权承诺、错误解释和服务口径不一致。",
+        },
+        {
+            "layer": "Outcome",
+            "name": "结果层",
+            "question": "客户体验、投诉风险和业务成本是否改善？",
+            "metrics": ["CSAT/NPS", "投诉率", "复咨率", "赔付率", "SLA 达成率"],
+            "business_use": "验证业务价值是否成立，防止只优化过程指标。",
+        },
+        {
+            "layer": "Iteration",
+            "name": "迭代层",
+            "question": "badcase、知识缺口和规则问题是否进入优化闭环？",
+            "metrics": ["badcase 回流率", "知识更新周期", "规则命中变化", "优化任务关闭率"],
+            "business_use": "判断系统是否持续变好，而不是上线后停留在静态 demo。",
+        },
+    ]
+
+    rows = [
+        _metric_row("输入层", "咨询量", str(summary["case_total"]), "按渠道日/周趋势监控", "服务运营", "按渠道和问题类型拆分流量来源", "watch"),
+        _metric_row("输入层", "重复问题率", f"{repeat_signal}%", "<= 15%", "服务运营", "聚类重复咨询，判断是否补知识或 SOP", _metric_status(repeat_signal, 15, False)),
+        _metric_row("识别层", "知识命中率", f"{rates['knowledge_support_rate']}%", ">= 70%", "知识库运营", "补齐未命中知识、冲突知识和证据引用", _metric_status(rates["knowledge_support_rate"], 70)),
+        _metric_row("识别层", "高风险识别占比", f"{rates['high_risk_rate']}%", "<= 20%", "风险策略", "复核监管投诉、赔付争议、舆情风险规则", _metric_status(rates["high_risk_rate"], 20, False)),
+        _metric_row("处理层", "自动解决率", f"{rates['auto_resolution_rate']}%", ">= 45%", "AI 服务运营", "扩大低风险标准场景，保留人工兜底", _metric_status(rates["auto_resolution_rate"], 45)),
+        _metric_row("处理层", "转人工率", f"{rates['handoff_rate']}%", "<= 35%", "一线主管", "拆分必要转人工和可通过追问/知识补齐避免的转人工", _metric_status(rates["handoff_rate"], 35, False)),
+        _metric_row("质量层", "质检覆盖率", f"{qa_coverage}%", ">= 90%", "质检主管", "扩大 AI 初筛覆盖，争议样本进入人工复核", _metric_status(qa_coverage, 90)),
+        _metric_row("质量层", "无依据回答占比", f"{max(0.0, 100 - rates['knowledge_support_rate'])}%", "<= 10%", "AI 质检", "低证据回答转人工确认或拒答", _metric_status(max(0.0, 100 - rates["knowledge_support_rate"]), 10, False)),
+        _metric_row("结果层", "CSAT/NPS", "未接入", "上线后接入", "服务运营", "接入满意度、投诉结果和复咨数据", "watch"),
+        _metric_row("结果层", "复咨率", f"{repeat_signal}%", "<= 15%", "服务运营", "检查一次解决率和用户重复描述问题", _metric_status(repeat_signal, 15, False)),
+        _metric_row("迭代层", "badcase 回流率", f"{badcase_loop_rate}%", ">= 80%", "AI 产品运营", "将 P0/P1 反馈转成知识、SOP、Prompt 或规则任务", _metric_status(badcase_loop_rate, 80)),
+        _metric_row("迭代层", "优化任务关闭率", "演示口径", ">= 70%", "服务运营", "后续接入任务状态和关闭周期", "watch"),
+    ]
+
+    governance = [
+        {
+            "rule": "口径统一",
+            "detail": "每个指标必须明确业务定义、分子、分母、时间范围、排除条件和数据源。",
+        },
+        {
+            "rule": "链路联动",
+            "detail": "不能只看单点指标，转人工率下降必须同时看 CSAT、复咨率、误答率和高风险转人工。",
+        },
+        {
+            "rule": "行动绑定",
+            "detail": "每个指标变化都要对应 owner 和下一步动作，否则就是噪音指标。",
+        },
+        {
+            "rule": "节奏管理",
+            "detail": "日看异常、周看归因、月看趋势和项目收益，重大异常当天同步。",
+        },
+    ]
+
+    return api_response(
+        {
+            "source": "job3.0 EXP-004 + AI service methodology",
+            "ops_snapshot": {
+                "case_total": summary["case_total"],
+                "auto_resolution_rate": rates["auto_resolution_rate"],
+                "handoff_rate": rates["handoff_rate"],
+                "knowledge_support_rate": rates["knowledge_support_rate"],
+                "high_risk_rate": rates["high_risk_rate"],
+                "feedback_pressure_rate": rates["feedback_pressure_rate"],
+            },
+            "layers": layers,
+            "metric_rows": rows,
+            "governance": governance,
+            "cadence": [
+                {"cadence": "日报", "focus": "核心指标快照、异常点、P0/P1 风险"},
+                {"cadence": "周报", "focus": "趋势变化、异常归因、转人工/知识缺口聚类"},
+                {"cadence": "月报", "focus": "业务结果、项目收益、下月优化计划"},
+                {"cadence": "异常反馈", "focus": "当天定位原因、同步 owner、进入优化任务"},
+            ],
         }
     )
 
