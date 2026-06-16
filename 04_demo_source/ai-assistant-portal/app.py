@@ -901,7 +901,7 @@ def render_case_detail_panel(selected: dict, data_source: str) -> None:
                 }
                 for name, info in slot_status.items()
             ]
-            st.dataframe(pd.DataFrame(slot_rows), width="stretch", hide_index=True)
+            st.dataframe(pd.DataFrame(slot_rows), use_container_width=True, hide_index=True)
         else:
             st.info("当前 case 暂无结构化槽位。")
         if knowledge_refs:
@@ -921,7 +921,7 @@ def render_case_detail_panel(selected: dict, data_source: str) -> None:
                         "time": item.get("created_at", item.get("time", "")),
                     }
                 )
-            st.dataframe(pd.DataFrame(trace_rows), width="stretch", hide_index=True)
+            st.dataframe(pd.DataFrame(trace_rows), use_container_width=True, hide_index=True)
         else:
             st.info("当前 case 暂无状态历史。")
         if conversation:
@@ -941,7 +941,7 @@ def render_case_detail_panel(selected: dict, data_source: str) -> None:
                 }
                 for event in case_feedback
             ]
-            st.dataframe(pd.DataFrame(feedback_rows), width="stretch", hide_index=True)
+            st.dataframe(pd.DataFrame(feedback_rows), use_container_width=True, hide_index=True)
         else:
             st.info("当前 case 暂无独立反馈事件。")
     with tab_raw:
@@ -1015,7 +1015,7 @@ def render_case_center() -> list[dict]:
         }
         for case in filtered
     ]
-    st.dataframe(pd.DataFrame(table_rows), width="stretch", hide_index=True)
+    st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
 
     selected_id = st.selectbox(
         "查看 case 详情",
@@ -1052,7 +1052,7 @@ def render_api_database_panel() -> None:
         }
         for endpoint in API_ENDPOINTS
     ]
-    st.dataframe(pd.DataFrame(endpoint_rows), width="stretch", hide_index=True)
+    st.dataframe(pd.DataFrame(endpoint_rows), use_container_width=True, hide_index=True)
 
 
 def render_operations_backend() -> None:
@@ -1240,7 +1240,7 @@ def render_ops_metrics_dashboard() -> None:
     st.markdown("#### 指标守门")
     monitoring_rows = dashboard.get("monitoring_rows", [])
     if monitoring_rows:
-        st.dataframe(pd.DataFrame(monitoring_rows), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(monitoring_rows), use_container_width=True, hide_index=True)
     else:
         st.info("暂无指标守门数据。")
 
@@ -1274,7 +1274,7 @@ def render_ops_metrics_dashboard() -> None:
         if frame.empty:
             st.info("暂无反馈事件。")
         else:
-            st.dataframe(frame, width="stretch", hide_index=True)
+            st.dataframe(frame, use_container_width=True, hide_index=True)
     with feedback_right:
         st.markdown("#### 反馈优先级")
         frame = _distribution_frame(dashboard["feedback_priority_distribution"], "events")
@@ -1286,7 +1286,7 @@ def render_ops_metrics_dashboard() -> None:
     st.markdown("#### 2.0 优化信号")
     signals = dashboard.get("optimization_signals", [])
     if signals:
-        st.dataframe(pd.DataFrame(signals), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(signals), use_container_width=True, hide_index=True)
     else:
         st.info("暂无优化信号。")
 
@@ -1333,12 +1333,12 @@ def render_business_metric_system() -> None:
 
     st.markdown("#### 指标口径与动作看板")
     metric_rows = pd.DataFrame(metric_system["metric_rows"])
-    st.dataframe(metric_rows, width="stretch", hide_index=True)
+    st.dataframe(metric_rows, use_container_width=True, hide_index=True)
 
     st.markdown("#### 异常诊断队列")
     anomaly_queue = metric_system.get("anomaly_queue", [])
     if anomaly_queue:
-        st.dataframe(pd.DataFrame(anomaly_queue), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(anomaly_queue), use_container_width=True, hide_index=True)
     else:
         st.success("当前指标没有触发异常诊断。")
 
@@ -1347,14 +1347,14 @@ def render_business_metric_system() -> None:
         st.markdown("#### 优先动作")
         priority_actions = metric_system.get("priority_actions", [])
         if priority_actions:
-            st.dataframe(pd.DataFrame(priority_actions), width="stretch", hide_index=True)
+            st.dataframe(pd.DataFrame(priority_actions), use_container_width=True, hide_index=True)
         else:
             st.info("暂无优先动作。")
     with action_right:
         st.markdown("#### 指标口径详情")
         definitions = metric_system.get("metric_definitions", [])
         if definitions:
-            st.dataframe(pd.DataFrame(definitions), width="stretch", hide_index=True)
+            st.dataframe(pd.DataFrame(definitions), use_container_width=True, hide_index=True)
         else:
             st.info("暂无指标口径详情。")
 
@@ -1371,7 +1371,7 @@ def render_business_metric_system() -> None:
         st.bar_chart(status_frame)
     with right:
         st.markdown("#### 管理节奏")
-        st.dataframe(pd.DataFrame(metric_system["cadence"]), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(metric_system["cadence"]), use_container_width=True, hide_index=True)
 
     st.markdown("#### 指标治理规则")
     for item in metric_system["governance"]:
