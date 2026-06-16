@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 try:
     from ai_native_shared.service_api import (
         API_ENDPOINTS,
+        get_case_detail,
         get_database_health,
         get_ops_metrics,
         list_case_records,
@@ -840,6 +841,111 @@ def _render_state_flow(status: str) -> None:
     st.markdown(f'<div class="state-flow">{"".join(steps)}</div>', unsafe_allow_html=True)
 
 
+def _tag_text(items: list | tuple | None, empty: str = "无") -> str:
+    if not items:
+        return empty
+    return " / ".join(str(item) for item in items)
+
+
+def render_case_detail_panel(selected: dict, data_source: str) -> None:
+    case_id = selected["case_id"]
+    if _SERVICE_API_IMPORT_ERROR:
+        detail = selected
+        detail_source = "fallback"
+        feedback_payload = {"data": {"items": [], "source": "fallback"}}
+    else:
+        detail_payload = get_case_detail(case_id, fallback_cases=BACKEND_CASES)
+        detail_data = detail_payload.get("data") or {}
+        detail = detail_data.get("item") or selected
+        detail_source = detail_data.get("source", data_source)
+        feedback_payload = list_feedback_records(case_id=case_id, fallback_events=FEEDBACK_EVENTS)
+
+    raw = detail.get("raw", detail)
+    state_history = detail.get("state_history") or raw.get("state_history", [])
+    slot_status = detail.get("slot_status") or raw.get("slot_status", {})
+    risk_tags = detail.get("risk_tags") or raw.get("risk_tags", [])
+    knowledge_refs = detail.get("knowledge_ref_items") or raw.get("knowledge_refs", [])
+    conversation = detail.get("conversation") or raw.get("conversation", [])
+    case_feedback = feedback_payload["data"]["items"]
+
+    st.markdown("#### Case 详情 / 审计视图")
+    st.caption(f"case_id: {case_id} / 数据来源: {detail_source} / 接口: GET /api/v1/cases/{case_id}")
+
+    overview_cols = st.columns([1.2, 1, 1])
+    with overview_cols[0]:
+        st.markdown(f"**{case_id} · {detail['intent']}**")
+        st.caption(f"{detail['channel']} / {detail['customer']} / {detail['source']}")
+        st.write(detail["summary"])
+    with overview_cols[1]:
+        st.metric("状态历史", len(state_history))
+        st.metric("风险标签", len(risk_tags))
+    with overview_cols[2]:
+        st.metric("知识引用", len(knowledge_refs))
+        st.metric("反馈事件", len(case_feedback))
+
+    _render_state_flow(detail["status"])
+
+    tab_slots, tab_trace, tab_feedback, tab_raw = st.tabs(
+        ["字段与风险", "状态与对话", "反馈事件", "原始上下文"]
+    )
+    with tab_slots:
+        st.markdown(f"**风险标签：** {_tag_text(risk_tags)}")
+        if slot_status:
+            slot_rows = [
+                {
+                    "slot": name,
+                    "status": info.get("status", "") if isinstance(info, dict) else "",
+                    "value": info.get("value", "") if isinstance(info, dict) else str(info),
+                }
+                for name, info in slot_status.items()
+            ]
+            st.dataframe(pd.DataFrame(slot_rows), width="stretch", hide_index=True)
+        else:
+            st.info("当前 case 暂无结构化槽位。")
+        if knowledge_refs:
+            st.markdown("**知识引用**")
+            st.json(knowledge_refs)
+    with tab_trace:
+        if state_history:
+            trace_rows = []
+            for idx, item in enumerate(state_history, start=1):
+                trace_rows.append(
+                    {
+                        "step": idx,
+                        "status": item.get("status", ""),
+                        "next_action": item.get("next_action", ""),
+                        "risk_level": item.get("risk_level", ""),
+                        "reason": item.get("decision_reason", item.get("reason", "")),
+                        "time": item.get("created_at", item.get("time", "")),
+                    }
+                )
+            st.dataframe(pd.DataFrame(trace_rows), width="stretch", hide_index=True)
+        else:
+            st.info("当前 case 暂无状态历史。")
+        if conversation:
+            with st.expander("查看对话上下文", expanded=False):
+                st.json(conversation)
+    with tab_feedback:
+        st.caption(f"接口: GET /api/v1/feedback-events?case_id={case_id}")
+        if case_feedback:
+            feedback_rows = [
+                {
+                    "event_type": event.get("event_type", ""),
+                    "priority": event.get("priority", ""),
+                    "source": event.get("source", event.get("source_module", "")),
+                    "root_cause": event.get("root_cause", ""),
+                    "suggested_action": event.get("suggested_action", ""),
+                    "created_at": event.get("created_at", ""),
+                }
+                for event in case_feedback
+            ]
+            st.dataframe(pd.DataFrame(feedback_rows), width="stretch", hide_index=True)
+        else:
+            st.info("当前 case 暂无独立反馈事件。")
+    with tab_raw:
+        st.json(raw)
+
+
 def _filter_cases(cases: list[dict], status: str, risk: str, priority: str, keyword: str) -> list[dict]:
     result = cases
     if status != "全部":
@@ -915,18 +1021,7 @@ def render_case_center() -> list[dict]:
         key="ops_selected_case",
     )
     selected = next(case for case in filtered if case["case_id"] == selected_id)
-    detail_cols = st.columns([1.2, 1, 1])
-    with detail_cols[0]:
-        st.markdown(f"**{selected['case_id']}｜{selected['intent']}**")
-        st.caption(f"{selected['channel']} / {selected['customer']} / {selected['source']}")
-        st.write(selected["summary"])
-    with detail_cols[1]:
-        st.metric("知识引用", selected["knowledge_refs"])
-        st.metric("反馈事件", selected["feedback_count"])
-    with detail_cols[2]:
-        st.metric("SLA", selected["sla"])
-        st.metric("负责人", selected["owner"])
-    _render_state_flow(selected["status"])
+    render_case_detail_panel(selected, data_source)
     return filtered
 
 

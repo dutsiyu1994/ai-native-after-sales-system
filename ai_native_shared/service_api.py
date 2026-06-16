@@ -45,6 +45,13 @@ API_ENDPOINTS = [
     },
     {
         "method": "GET",
+        "path": "/api/v1/feedback-events?case_id={case_id}",
+        "name": "list_case_feedback_events",
+        "purpose": "read feedback events attached to one case for audit and optimization follow-up.",
+        "storage": "feedback_events",
+    },
+    {
+        "method": "GET",
         "path": "/api/v1/ops/metrics",
         "name": "get_ops_metrics",
         "purpose": "aggregate queue, handoff, high-risk, and unresolved feedback metrics.",
@@ -121,6 +128,10 @@ def normalize_case_record(case: dict[str, Any]) -> dict[str, Any]:
         "sla": case.get("sla", "By priority"),
         "risk_tags": risk_tags,
         "slot_status": slot_status,
+        "knowledge_ref_items": knowledge_refs,
+        "feedback_event_items": feedback_events,
+        "state_history": state_history,
+        "conversation": conversation,
         "raw": case,
     }
 
@@ -175,22 +186,29 @@ def list_case_records(
     )
 
 
-def get_case_detail(case_id: str) -> dict[str, Any]:
+def get_case_detail(case_id: str, fallback_cases: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     try:
         case = case_store.get_case(case_id)
-        if not case:
-            return api_response(None, ok=False, error="case_not_found")
-        return api_response(normalize_case_record(case))
+        if case:
+            return api_response({"item": normalize_case_record(case), "source": "sqlite"})
     except Exception as exc:
-        return api_response(None, ok=False, error=str(exc))
+        if fallback_cases is None:
+            return api_response(None, ok=False, error=str(exc))
+
+    if fallback_cases:
+        for case in fallback_cases:
+            if case.get("case_id") == case_id:
+                return api_response({"item": case, "source": "fallback"})
+    return api_response(None, ok=False, error="case_not_found")
 
 
 def list_feedback_records(
+    case_id: str | None = None,
     limit: int = 50,
     fallback_events: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     try:
-        events = feedback_store.get_events(limit=limit)
+        events = feedback_store.get_events(case_id=case_id, limit=limit)
         source = "sqlite"
     except Exception as exc:
         if fallback_events is None:
@@ -200,6 +218,8 @@ def list_feedback_records(
     if not events and fallback_events:
         events = fallback_events
         source = "fallback"
+    if case_id:
+        events = [event for event in events if event.get("case_id") == case_id]
     return api_response({"items": events, "total": len(events), "source": source})
 
 
