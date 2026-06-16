@@ -25,6 +25,7 @@ try:
         API_ENDPOINTS,
         get_case_detail,
         get_database_health,
+        get_ops_dashboard,
         get_ops_metrics,
         list_case_records,
         list_feedback_records,
@@ -1161,6 +1162,134 @@ def render_operations_backend() -> None:
             )
 
 
+def _distribution_frame(distribution: dict[str, int], label: str) -> pd.DataFrame:
+    return pd.DataFrame(
+        [{"name": key, label: value} for key, value in distribution.items()]
+    )
+
+
+def render_ops_metrics_dashboard() -> None:
+    st.subheader("运营指标 / 服务闭环监控")
+    st.caption(
+        "用 case 与 feedback 事件衡量系统是否真的形成售后服务闭环，而不是只展示单点 AI 工具。接口: GET /api/v1/ops/dashboard"
+    )
+
+    if _SERVICE_API_IMPORT_ERROR:
+        dashboard = {
+            "case_source": "fallback",
+            "feedback_source": "fallback",
+            "summary": {
+                "case_total": len(BACKEND_CASES),
+                "auto_resolved_cases": sum(
+                    1
+                    for case in BACKEND_CASES
+                    if case["next_action"] == "standard_answer"
+                    or case["status"] in {"ai_answered", "resolved", "closed"}
+                ),
+                "handoff_cases": sum(
+                    1
+                    for case in BACKEND_CASES
+                    if case["next_action"] == "human_handoff"
+                    or case["status"] in {"handoff_pending", "human_in_progress", "escalated"}
+                ),
+                "high_risk_cases": sum(1 for case in BACKEND_CASES if case["risk_level"] == "high"),
+                "knowledge_supported_cases": sum(
+                    1
+                    for case in BACKEND_CASES
+                    if case["evidence_status"] == "sufficient" or case["knowledge_refs"] > 0
+                ),
+                "unresolved_feedback": sum(1 for event in FEEDBACK_EVENTS if event["priority"] in ("P0", "P1")),
+            },
+            "rates": {
+                "auto_resolution_rate": 20.0,
+                "handoff_rate": 40.0,
+                "high_risk_rate": 20.0,
+                "knowledge_support_rate": 80.0,
+                "feedback_pressure_rate": 80.0,
+            },
+            "status_distribution": {},
+            "risk_distribution": {},
+            "priority_distribution": {},
+            "evidence_distribution": {},
+            "feedback_type_distribution": {},
+            "feedback_priority_distribution": {},
+            "monitoring_rows": [],
+            "optimization_signals": [],
+        }
+    else:
+        payload = get_ops_dashboard(
+            fallback_cases=BACKEND_CASES,
+            fallback_events=FEEDBACK_EVENTS,
+        )
+        dashboard = payload["data"]
+
+    summary = dashboard["summary"]
+    rates = dashboard["rates"]
+    st.caption(
+        f"case_source: {dashboard['case_source']} / feedback_source: {dashboard['feedback_source']}"
+    )
+
+    metric_cols = st.columns(5)
+    metric_cols[0].metric("自动解决率", f"{rates['auto_resolution_rate']}%", f"{summary['auto_resolved_cases']} case")
+    metric_cols[1].metric("转人工率", f"{rates['handoff_rate']}%", f"{summary['handoff_cases']} case")
+    metric_cols[2].metric("知识覆盖率", f"{rates['knowledge_support_rate']}%", f"{summary['knowledge_supported_cases']} case")
+    metric_cols[3].metric("高风险占比", f"{rates['high_risk_rate']}%", f"{summary['high_risk_cases']} case")
+    metric_cols[4].metric("反馈压力", f"{rates['feedback_pressure_rate']}%", f"{summary['unresolved_feedback']} open")
+
+    st.markdown("#### 指标守门")
+    monitoring_rows = dashboard.get("monitoring_rows", [])
+    if monitoring_rows:
+        st.dataframe(pd.DataFrame(monitoring_rows), width="stretch", hide_index=True)
+    else:
+        st.info("暂无指标守门数据。")
+
+    dist_left, dist_mid, dist_right = st.columns(3)
+    with dist_left:
+        st.markdown("#### Case 状态")
+        frame = _distribution_frame(dashboard["status_distribution"], "cases")
+        if frame.empty:
+            st.info("暂无状态分布。")
+        else:
+            st.bar_chart(frame.set_index("name"))
+    with dist_mid:
+        st.markdown("#### 风险等级")
+        frame = _distribution_frame(dashboard["risk_distribution"], "cases")
+        if frame.empty:
+            st.info("暂无风险分布。")
+        else:
+            st.bar_chart(frame.set_index("name"))
+    with dist_right:
+        st.markdown("#### 证据状态")
+        frame = _distribution_frame(dashboard["evidence_distribution"], "cases")
+        if frame.empty:
+            st.info("暂无证据分布。")
+        else:
+            st.bar_chart(frame.set_index("name"))
+
+    feedback_left, feedback_right = st.columns(2)
+    with feedback_left:
+        st.markdown("#### 反馈事件类型")
+        frame = _distribution_frame(dashboard["feedback_type_distribution"], "events")
+        if frame.empty:
+            st.info("暂无反馈事件。")
+        else:
+            st.dataframe(frame, width="stretch", hide_index=True)
+    with feedback_right:
+        st.markdown("#### 反馈优先级")
+        frame = _distribution_frame(dashboard["feedback_priority_distribution"], "events")
+        if frame.empty:
+            st.info("暂无反馈优先级。")
+        else:
+            st.bar_chart(frame.set_index("name"))
+
+    st.markdown("#### 2.0 优化信号")
+    signals = dashboard.get("optimization_signals", [])
+    if signals:
+        st.dataframe(pd.DataFrame(signals), width="stretch", hide_index=True)
+    else:
+        st.info("暂无优化信号。")
+
+
 def render_launch_logic() -> None:
     st.subheader("上线逻辑与边界")
     st.markdown(
@@ -1218,8 +1347,8 @@ def main() -> None:
     render_header()
     render_kpis()
 
-    tab_arch, tab_demos, tab_cases, tab_ops, tab_launch = st.tabs(
-        ["系统架构", "demo 入口", "case 流转", "运营后台", "上线逻辑"]
+    tab_arch, tab_demos, tab_cases, tab_ops, tab_metrics, tab_launch = st.tabs(
+        ["系统架构", "demo 入口", "case 流转", "运营后台", "运营指标", "上线逻辑"]
     )
 
     with tab_arch:
@@ -1234,6 +1363,9 @@ def main() -> None:
 
     with tab_ops:
         render_operations_backend()
+
+    with tab_metrics:
+        render_ops_metrics_dashboard()
 
     with tab_launch:
         render_launch_logic()

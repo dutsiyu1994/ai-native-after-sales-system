@@ -59,6 +59,13 @@ API_ENDPOINTS = [
     },
     {
         "method": "GET",
+        "path": "/api/v1/ops/dashboard",
+        "name": "get_ops_dashboard",
+        "purpose": "return service operations ratios, distributions, monitoring rows, and optimization signals.",
+        "storage": "cases + feedback_events",
+    },
+    {
+        "method": "GET",
         "path": "/api/v1/system/db-health",
         "name": "get_database_health",
         "purpose": "show database path, table status, record counts, and write readiness.",
@@ -221,6 +228,179 @@ def list_feedback_records(
     if case_id:
         events = [event for event in events if event.get("case_id") == case_id]
     return api_response({"items": events, "total": len(events), "source": source})
+
+
+def _percent(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return round(numerator / denominator * 100, 1)
+
+
+def _count_by(items: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in items:
+        value = str(item.get(key) or "unknown")
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items(), key=lambda pair: pair[0]))
+
+
+def _feedback_unresolved_count(events: list[dict[str, Any]]) -> int:
+    unresolved = 0
+    for event in events:
+        if "is_resolved" in event:
+            unresolved += 0 if event.get("is_resolved") else 1
+        elif event.get("priority") in {"P0", "P1"}:
+            unresolved += 1
+    return unresolved
+
+
+def _metric_status(value: float, target: float, higher_is_better: bool = True) -> str:
+    if higher_is_better:
+        if value >= target:
+            return "healthy"
+        if value >= target * 0.8:
+            return "watch"
+        return "risk"
+    if value <= target:
+        return "healthy"
+    if value <= target * 1.25:
+        return "watch"
+    return "risk"
+
+
+def get_ops_dashboard(
+    fallback_cases: list[dict[str, Any]] | None = None,
+    fallback_events: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    cases_payload = list_case_records(fallback_cases=fallback_cases)["data"]
+    feedback_payload = list_feedback_records(fallback_events=fallback_events)["data"]
+    cases = cases_payload["items"]
+    events = feedback_payload["items"]
+    total = len(cases)
+
+    auto_resolved = sum(
+        1
+        for case in cases
+        if case.get("next_action") == "standard_answer"
+        or case.get("status") in {"ai_answered", "resolved", "closed"}
+    )
+    handoff = sum(
+        1
+        for case in cases
+        if case.get("next_action") == "human_handoff"
+        or case.get("status") in {"handoff_pending", "human_in_progress", "escalated"}
+    )
+    high_risk = sum(1 for case in cases if case.get("risk_level") == "high")
+    knowledge_supported = sum(
+        1
+        for case in cases
+        if case.get("evidence_status") == "sufficient" or int(case.get("knowledge_refs") or 0) > 0
+    )
+    unresolved_feedback = _feedback_unresolved_count(events)
+
+    rates = {
+        "auto_resolution_rate": _percent(auto_resolved, total),
+        "handoff_rate": _percent(handoff, total),
+        "high_risk_rate": _percent(high_risk, total),
+        "knowledge_support_rate": _percent(knowledge_supported, total),
+        "feedback_pressure_rate": _percent(unresolved_feedback, max(total, 1)),
+    }
+
+    monitoring_rows = [
+        {
+            "metric": "Auto resolution rate",
+            "value": f"{rates['auto_resolution_rate']}%",
+            "target": ">= 45%",
+            "status": _metric_status(rates["auto_resolution_rate"], 45),
+            "meaning": "Low-risk cases that can be answered or closed by AI with evidence.",
+        },
+        {
+            "metric": "Human handoff rate",
+            "value": f"{rates['handoff_rate']}%",
+            "target": "<= 35%",
+            "status": _metric_status(rates["handoff_rate"], 35, higher_is_better=False),
+            "meaning": "Cases that need human responsibility, policy judgment, or escalation.",
+        },
+        {
+            "metric": "Knowledge support rate",
+            "value": f"{rates['knowledge_support_rate']}%",
+            "target": ">= 70%",
+            "status": _metric_status(rates["knowledge_support_rate"], 70),
+            "meaning": "Cases with sufficient knowledge references or traceable evidence.",
+        },
+        {
+            "metric": "High-risk case rate",
+            "value": f"{rates['high_risk_rate']}%",
+            "target": "<= 20%",
+            "status": _metric_status(rates["high_risk_rate"], 20, higher_is_better=False),
+            "meaning": "Regulatory, compensation, public complaint, or severe service risk cases.",
+        },
+        {
+            "metric": "Feedback pressure",
+            "value": f"{rates['feedback_pressure_rate']}%",
+            "target": "<= 30%",
+            "status": _metric_status(rates["feedback_pressure_rate"], 30, higher_is_better=False),
+            "meaning": "Open P0/P1 feedback events relative to current case volume.",
+        },
+    ]
+
+    signals: list[dict[str, str]] = []
+    if rates["knowledge_support_rate"] < 70:
+        signals.append(
+            {
+                "signal": "knowledge_gap",
+                "severity": "P1",
+                "recommendation": "Cluster knowledge_miss and missing-evidence cases, then add SOP snippets and required slots.",
+            }
+        )
+    if rates["handoff_rate"] > 35:
+        signals.append(
+            {
+                "signal": "handoff_pressure",
+                "severity": "P1",
+                "recommendation": "Review handoff reasons and split unavoidable risk handoff from avoidable missing-information handoff.",
+            }
+        )
+    if rates["feedback_pressure_rate"] > 30:
+        signals.append(
+            {
+                "signal": "feedback_backlog",
+                "severity": "P1",
+                "recommendation": "Prioritize unresolved P0/P1 feedback events and convert repeated causes into rules, SOP, or prompts.",
+            }
+        )
+    if not signals:
+        signals.append(
+            {
+                "signal": "stable_baseline",
+                "severity": "P2",
+                "recommendation": "Keep sampling badcases and compare AI decisions with human review before increasing automation scope.",
+            }
+        )
+
+    return api_response(
+        {
+            "case_source": cases_payload["source"],
+            "feedback_source": feedback_payload["source"],
+            "summary": {
+                "case_total": total,
+                "auto_resolved_cases": auto_resolved,
+                "handoff_cases": handoff,
+                "high_risk_cases": high_risk,
+                "knowledge_supported_cases": knowledge_supported,
+                "unresolved_feedback": unresolved_feedback,
+            },
+            "rates": rates,
+            "status_distribution": _count_by(cases, "status"),
+            "risk_distribution": _count_by(cases, "risk_level"),
+            "priority_distribution": _count_by(cases, "priority"),
+            "evidence_distribution": _count_by(cases, "evidence_status"),
+            "feedback_type_distribution": _count_by(events, "event_type"),
+            "feedback_priority_distribution": _count_by(events, "priority"),
+            "monitoring_rows": monitoring_rows,
+            "optimization_signals": signals,
+        }
+    )
 
 
 def get_ops_metrics(fallback_cases: list[dict[str, Any]] | None = None) -> dict[str, Any]:
