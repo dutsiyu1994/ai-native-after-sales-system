@@ -1335,6 +1335,29 @@ def render_business_metric_system() -> None:
     metric_rows = pd.DataFrame(metric_system["metric_rows"])
     st.dataframe(metric_rows, width="stretch", hide_index=True)
 
+    st.markdown("#### 异常诊断队列")
+    anomaly_queue = metric_system.get("anomaly_queue", [])
+    if anomaly_queue:
+        st.dataframe(pd.DataFrame(anomaly_queue), width="stretch", hide_index=True)
+    else:
+        st.success("当前指标没有触发异常诊断。")
+
+    action_left, action_right = st.columns([1, 1])
+    with action_left:
+        st.markdown("#### 优先动作")
+        priority_actions = metric_system.get("priority_actions", [])
+        if priority_actions:
+            st.dataframe(pd.DataFrame(priority_actions), width="stretch", hide_index=True)
+        else:
+            st.info("暂无优先动作。")
+    with action_right:
+        st.markdown("#### 指标口径详情")
+        definitions = metric_system.get("metric_definitions", [])
+        if definitions:
+            st.dataframe(pd.DataFrame(definitions), width="stretch", hide_index=True)
+        else:
+            st.info("暂无指标口径详情。")
+
     left, right = st.columns([1.2, 0.8])
     with left:
         st.markdown("#### 分层指标状态")

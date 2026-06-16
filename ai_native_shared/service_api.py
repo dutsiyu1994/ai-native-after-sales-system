@@ -507,6 +507,79 @@ def get_business_metric_system(
         _metric_row("迭代层", "优化任务关闭率", "演示口径", ">= 70%", "服务运营", "后续接入任务状态和关闭周期", "watch"),
     ]
 
+    diagnosis_rules = {
+        "重复问题率": ("问题重复进入服务链路", "聚类重复问题，优先补知识、入口提示或 SOP。"),
+        "知识命中率": ("知识覆盖或引用证据不足", "补齐未命中知识、冲突知识和引用口径。"),
+        "高风险识别占比": ("高风险 case 占比偏高或规则过宽", "复核监管、赔付、舆情等风险标签的命中样本。"),
+        "自动解决率": ("低风险场景自动化覆盖不足", "从高频低风险问题中选择下一批标准答复场景。"),
+        "转人工率": ("人工队列压力或 AI 判断边界不清", "拆分必要转人工与可通过追问/知识补齐避免的转人工。"),
+        "质检覆盖率": ("质检覆盖不足", "扩大 AI 初筛范围，争议样本进入人工复核。"),
+        "无依据回答占比": ("知识证据缺失风险", "低证据回答触发拒答、补证据或转人工确认。"),
+        "CSAT/NPS": ("结果层数据未接入", "上线后接入满意度、投诉结果和复咨数据。"),
+        "复咨率": ("一次解决不足或用户重复描述", "抽样复咨 case，定位是知识、流程还是人工处理问题。"),
+        "badcase 回流率": ("反馈没有稳定进入优化闭环", "将 P0/P1 反馈转成知识、SOP、Prompt 或规则任务。"),
+        "优化任务关闭率": ("优化任务状态未系统化", "后续接入任务 owner、状态、关闭周期和效果复盘。"),
+    }
+    priority_order = {"risk": "P0", "watch": "P1", "healthy": "P2"}
+    anomaly_queue = [
+        {
+            "priority": priority_order.get(row["status"], "P2"),
+            "layer": row["layer"],
+            "metric": row["metric"],
+            "current": row["current"],
+            "target": row["target"],
+            "status": row["status"],
+            "diagnosis": diagnosis_rules.get(row["metric"], ("需要持续观察", ""))[0],
+            "next_action": diagnosis_rules.get(row["metric"], ("", row["action"]))[1] or row["action"],
+            "owner": row["owner"],
+        }
+        for row in rows
+        if row["status"] != "healthy"
+    ]
+    anomaly_queue.sort(key=lambda item: (item["priority"], item["layer"], item["metric"]))
+
+    priority_actions = [
+        {
+            "rank": index,
+            "owner": item["owner"],
+            "metric": item["metric"],
+            "action": item["next_action"],
+            "acceptance": "下次周报需说明指标变化、样本原因和是否关闭。",
+        }
+        for index, item in enumerate(anomaly_queue[:5], start=1)
+    ]
+
+    metric_definitions = [
+        {
+            "metric": "自动解决率",
+            "definition": "AI 在低风险场景中完成答复或关闭的 case 占比。",
+            "numerator": "AI answered / resolved / closed cases",
+            "denominator": "total cases",
+            "source": "case status + next_action",
+        },
+        {
+            "metric": "转人工率",
+            "definition": "进入人工接管、人工处理中或升级处理的 case 占比。",
+            "numerator": "human_handoff / handoff_pending / human_in_progress / escalated cases",
+            "denominator": "total cases",
+            "source": "case status + next_action",
+        },
+        {
+            "metric": "知识命中率",
+            "definition": "有充分知识依据或可追溯知识引用的 case 占比。",
+            "numerator": "cases with sufficient evidence or knowledge refs",
+            "denominator": "total cases",
+            "source": "knowledge_refs + evidence_status",
+        },
+        {
+            "metric": "badcase 回流率",
+            "definition": "高优先级反馈进入优化闭环的程度。",
+            "numerator": "converted or closed feedback events",
+            "denominator": "P0/P1 feedback events",
+            "source": "feedback events + optimization task status",
+        },
+    ]
+
     governance = [
         {
             "rule": "口径统一",
@@ -539,6 +612,9 @@ def get_business_metric_system(
             },
             "layers": layers,
             "metric_rows": rows,
+            "anomaly_queue": anomaly_queue,
+            "priority_actions": priority_actions,
+            "metric_definitions": metric_definitions,
             "governance": governance,
             "cadence": [
                 {"cadence": "日报", "focus": "核心指标快照、异常点、P0/P1 风险"},
