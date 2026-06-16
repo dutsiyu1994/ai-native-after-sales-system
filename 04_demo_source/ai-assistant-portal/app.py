@@ -1,9 +1,8 @@
 """AI native after-sales service system portal.
 
-The portal is a navigation and architecture console. It shows six business
-demos through the production workflow layers:
-customer entry -> AI orchestration -> case center -> operations backend ->
-2.0 optimization.
+This portal presents the six Streamlit demos as one production-oriented
+after-sales service system: customer entry, AI orchestration, case center,
+operations backend, and the 2.0 optimization layer.
 """
 
 from __future__ import annotations
@@ -39,12 +38,13 @@ class DemoLink:
 
 
 @dataclass(frozen=True)
-class Layer:
+class SystemLayer:
+    index: str
     title: str
     subtitle: str
-    items: tuple[str, ...]
+    role: str
+    capabilities: tuple[str, ...]
     demos: tuple[str, ...]
-    system_meaning: str
 
 
 DEMOS = {
@@ -53,7 +53,7 @@ DEMOS = {
         url_key="CUSTOMER_AGENT_URL",
         default_url="https://customer-agent-msydemo.streamlit.app/",
         layer="客户入口 / AI 服务编排层",
-        purpose="承接客户自然语言输入，创建 case，完成多轮补槽、风险判断和转人工决策。",
+        purpose="承接客户自然语言输入，创建 case，完成多轮信息补齐、风险判断和转人工决策。",
         input_text="客户问题、订单号、时间、诉求、凭证、历史上下文",
         output_text="case_id、intent、slots、risk_tags、next_action、handoff_summary",
         boundary="不自动承诺退款、赔付、改签或监管结论。",
@@ -112,60 +112,45 @@ DEMOS = {
 
 
 LAYERS = [
-    Layer(
+    SystemLayer(
+        index="01",
         title="客户入口",
         subtitle="Web Chat / 小程序 / 企业微信 / Zendesk / 飞书客服",
-        items=(
-            "接收客户自然语言售后问题",
-            "识别客户身份、渠道和会话来源",
-            "收集订单、物流、售后诉求和凭证",
-        ),
+        role="把客户原始表达转成可处理的服务事件。",
+        capabilities=("自然语言输入", "身份与渠道识别", "订单/物流/售后字段采集"),
         demos=("对客沟通机器人",),
-        system_meaning="这是整个系统的信息输入端，目标是把客户原始表达转成可处理的服务事件。",
     ),
-    Layer(
+    SystemLayer(
+        index="02",
         title="AI 服务编排层",
-        subtitle="意图识别 / 多轮补槽 / RAG 知识检索 / 风险判断 / 标准答复 / 转人工",
-        items=(
-            "识别 intent、slots、risk_tags 和客户情绪",
-            "根据知识依据生成标准答复或继续追问",
-            "高风险、低置信、政策冲突场景触发人工接管",
-        ),
+        subtitle="意图识别 / 多轮信息补齐 / RAG / 风险判断 / 标准答复 / 转人工",
+        role="把服务判断拆成可审计、可复核、可转人工的 AI 决策流。",
+        capabilities=("intent / slots / risk_tags", "知识依据检索", "next_action 决策"),
         demos=("对客沟通机器人", "RAG 知识库", "客诉智能分类", "VOC 风险识别"),
-        system_meaning="这一层不是脚本自动化，而是把服务判断拆成可审计的 AI 决策流。",
     ),
-    Layer(
+    SystemLayer(
+        index="03",
         title="Case 中台",
-        subtitle="case_id / 用户信息 / 订单字段 / 对话历史 / 风险标签 / 知识引用 / 人工记录 / 处理结果",
-        items=(
-            "用 case_id 串联客户消息、AI 判断和人工处理",
-            "沉淀订单、物流、售后字段和知识引用",
-            "保留人工接管记录、处理结果和状态变化",
-        ),
+        subtitle="case_id / 用户信息 / 订单字段 / 对话历史 / 风险标签 / 知识引用 / 处理结果",
+        role="用统一 case 串联客户、AI、知识、人工和质检，避免模块孤立。",
+        capabilities=("case_id 贯穿", "状态与字段沉淀", "人工接管记录"),
         demos=("客诉智能分类", "服务事件摘要"),
-        system_meaning="这一层是生产系统的数据底座，避免各模块只做孤立判断。",
     ),
-    Layer(
+    SystemLayer(
+        index="04",
         title="运营后台",
         subtitle="工单列表 / 人工接管台 / 知识库管理 / 质检审核 / 指标看板 / badcase 反馈",
-        items=(
-            "处理工单队列和高风险人工接管",
-            "管理知识库、质检审核和指标看板",
-            "记录 badcase、人工改写、知识未命中和客户反馈",
-        ),
+        role="让 AI 输出进入可管理、可复核、可追责的日常运营流程。",
+        capabilities=("知识库管理", "风险与工单队列", "质检和反馈闭环"),
         demos=("RAG 知识库", "VOC 风险识别", "服务事件摘要", "客服对话质检"),
-        system_meaning="这一层面向服务团队日常运营，让 AI 输出进入可管理、可复核、可追责流程。",
     ),
-    Layer(
+    SystemLayer(
+        index="05",
         title="2.0 优化层",
-        subtitle="知识未命中分析 / 高频问题发现 / 转人工原因聚类 / 风险误判分析 / Prompt-SOP-知识库优化建议",
-        items=(
-            "从知识未命中、转人工原因和质检低分中发现系统问题",
-            "聚类高频问题、风险误判和流程卡点",
-            "生成 Prompt、SOP、知识库和追问策略优化建议",
-        ),
+        subtitle="知识未命中 / 高频问题 / 转人工原因 / 风险误判 / Prompt-SOP-知识库优化建议",
+        role="从处理问题升级为发现问题、反馈问题并推动服务系统优化。",
+        capabilities=("知识缺口分析", "转人工原因聚类", "优化建议生成"),
         demos=("VOC 风险识别", "客服对话质检"),
-        system_meaning="这一层体现系统从处理问题升级为发现问题、反馈问题并推动优化。",
     ),
 ]
 
@@ -174,23 +159,26 @@ SAMPLE_CASES = [
     {
         "case_id": "CASE-AIR-001",
         "topic": "航班延误退票赔付，并提到民航局投诉",
-        "layer": "AI 服务编排层 -> 运营后台",
+        "route": "客户入口 -> AI 服务编排层 -> 运营后台",
         "risk": "监管投诉 / 赔付争议",
-        "next_action": "human_handoff",
+        "action": "human_handoff",
+        "severity": "high",
     },
     {
         "case_id": "CASE-LOG-002",
         "topic": "物流迟迟未更新，第二轮补充订单号",
-        "layer": "客户入口 -> Case 中台",
+        "route": "客户入口 -> Case 中台",
         "risk": "信息缺失 / 低风险",
-        "next_action": "ask_followup",
+        "action": "ask_followup",
+        "severity": "low",
     },
     {
         "case_id": "CASE-RAG-003",
         "topic": "咨询自愿退票手续费政策",
-        "layer": "AI 服务编排层 -> RAG 知识检索",
+        "route": "AI 服务编排层 -> RAG 知识检索",
         "risk": "低风险 / 知识命中",
-        "next_action": "standard_answer",
+        "action": "standard_answer",
+        "severity": "low",
     },
 ]
 
@@ -199,98 +187,219 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
-        .block-container {
-            padding-top: 1.25rem;
-            padding-bottom: 2rem;
-            max-width: 1280px;
+        :root {
+            --surface: #f5f7fb;
+            --panel: #ffffff;
+            --ink: #111827;
+            --muted: #64748b;
+            --line: #dbe3ef;
+            --primary: #0c5cab;
+            --teal: #0f766e;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #111827;
         }
-        h1, h2, h3, p, li, div {
+        .stApp {
+            background:
+                radial-gradient(circle at top left, rgba(12, 92, 171, 0.10), transparent 28rem),
+                linear-gradient(180deg, #f8fafc 0%, var(--surface) 100%);
+            color: var(--ink);
+        }
+        .block-container {
+            max-width: 1240px;
+            padding-top: 1.2rem;
+            padding-bottom: 2rem;
+        }
+        h1, h2, h3, p, li, div, span {
             letter-spacing: 0;
         }
-        .topbar {
-            border-bottom: 1px solid #d9e2ec;
-            padding-bottom: 14px;
-            margin-bottom: 18px;
+        div[data-testid="stMetric"] {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.90);
+            padding: 14px 16px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
         }
-        .topbar h1 {
-            margin: 0 0 6px 0;
-            color: #102a43;
-            font-size: 30px;
+        div[data-testid="stMetricLabel"] p {
+            color: var(--muted);
+            font-size: 13px;
+        }
+        div[data-testid="stMetricValue"] {
+            color: var(--ink);
             font-weight: 760;
         }
-        .muted {
-            color: #52606d;
+        .hero {
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(12, 92, 171, 0.90)),
+                #111827;
+            color: #f8fafc;
+            padding: 26px 28px;
+            margin-bottom: 18px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+        }
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.75fr);
+            gap: 22px;
+            align-items: end;
+        }
+        .eyebrow {
+            color: #93c5fd;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .hero h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            line-height: 1.18;
+            color: #ffffff;
+        }
+        .hero p {
+            margin: 0;
+            color: #dbeafe;
+            font-size: 15px;
+            line-height: 1.75;
+        }
+        .hero-status {
+            display: grid;
+            gap: 8px;
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.07);
+            color: #e0f2fe;
+            font-size: 13px;
+        }
+        .section-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin: 8px 0 4px;
+        }
+        .subtle {
+            color: var(--muted);
             line-height: 1.65;
             font-size: 14px;
         }
+        .layer-card, .demo-card, .case-row, .band {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.94);
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+        }
         .layer-card {
-            border: 1px solid #d9e2ec;
-            border-radius: 8px;
-            background: #ffffff;
-            padding: 16px;
+            padding: 18px;
             margin-bottom: 14px;
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr) minmax(220px, 0.38fr);
+            gap: 16px;
+            align-items: start;
         }
-        .layer-card h3 {
-            margin: 0 0 4px 0;
-            color: #102a43;
-            font-size: 20px;
-        }
-        .demo-card {
-            border: 1px solid #d9e2ec;
+        .layer-index {
+            width: 48px;
+            height: 48px;
             border-radius: 8px;
-            background: #ffffff;
-            padding: 16px;
-            min-height: 292px;
-            margin-bottom: 14px;
+            background: #eff6ff;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            border: 1px solid #bfdbfe;
         }
-        .demo-card h3 {
-            margin-top: 0;
-            margin-bottom: 8px;
-            color: #102a43;
+        .layer-card h3, .demo-card h3 {
+            margin: 0 0 6px 0;
+            color: var(--ink);
             font-size: 19px;
         }
+        .layer-card ul {
+            margin: 10px 0 0 18px;
+            color: #334155;
+            line-height: 1.7;
+        }
         .pill {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
             padding: 3px 8px;
             border-radius: 999px;
             border: 1px solid #b2f5ea;
-            background: #e6fffa;
-            color: #0f766e;
+            background: #ecfdf5;
+            color: var(--teal);
             font-size: 12px;
-            margin-right: 6px;
-            margin-bottom: 8px;
+            font-weight: 700;
+            margin: 0 6px 6px 0;
+            max-width: 100%;
+        }
+        .demo-card {
+            padding: 17px;
+            min-height: 305px;
+            margin-bottom: 14px;
+        }
+        .demo-card p {
+            margin: 8px 0;
         }
         .open-link {
-            display: inline-block;
-            padding: 8px 12px;
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 13px;
             border-radius: 6px;
-            background: #0f766e;
+            background: var(--primary);
             color: #ffffff !important;
             text-decoration: none;
-            font-weight: 700;
+            font-weight: 760;
             margin-top: 10px;
         }
+        .open-link:hover {
+            background: #084a8e;
+        }
         .case-row {
-            border: 1px solid #d9e2ec;
-            border-radius: 8px;
-            padding: 12px;
-            background: #ffffff;
-            margin-bottom: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1.2fr) minmax(220px, 0.55fr);
+            gap: 16px;
+        }
+        .case-id {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 800;
         }
         .risk-high {
             color: #b42318;
-            font-weight: 700;
+            font-weight: 800;
         }
         .risk-low {
-            color: #0f766e;
-            font-weight: 700;
+            color: var(--teal);
+            font-weight: 800;
         }
         .band {
-            border: 1px solid #d9e2ec;
-            border-radius: 8px;
-            background: #f8fafc;
             padding: 16px;
             margin: 14px 0;
+        }
+        @media (max-width: 900px) {
+            .hero-grid,
+            .layer-card,
+            .case-row {
+                grid-template-columns: 1fr;
+            }
+            .hero h1 {
+                font-size: 26px;
+            }
         }
         </style>
         """,
@@ -301,11 +410,22 @@ def inject_css() -> None:
 def render_header() -> None:
     st.markdown(
         """
-        <div class="topbar">
-            <h1>AI native 售后服务系统门户</h1>
-            <div class="muted">
-                这不是 6 个 AI 工具的罗列，而是按真实上线逻辑组织的售后服务系统入口。
-                门户只负责展示系统逻辑层、模块入口、case 流转和上线边界；具体能力由 6 个业务 demo 承担。
+        <div class="hero">
+            <div class="hero-grid">
+                <div>
+                    <div class="eyebrow">AI native after-sales operating system</div>
+                    <h1>售后服务系统门户</h1>
+                    <p>
+                    按真实上线逻辑组织 6 个业务 demo：客户入口、AI 服务编排、Case 中台、
+                    运营后台和 2.0 优化层。重点展示服务信息流、风险判断、人机分工、
+                    知识口径和质量反馈闭环，而不是单点工具提效。
+                    </p>
+                </div>
+                <div class="hero-status">
+                    <div class="status-row"><span>部署状态</span><strong>线上可访问</strong></div>
+                    <div class="status-row"><span>业务模块</span><strong>6 个 demo</strong></div>
+                    <div class="status-row"><span>主链路</span><strong>5 层闭环</strong></div>
+                </div>
             </div>
         </div>
         """,
@@ -316,23 +436,29 @@ def render_header() -> None:
 def render_kpis() -> None:
     cols = st.columns(5)
     cols[0].metric("逻辑层", "5", "入口到优化")
-    cols[1].metric("业务 demo", "6", "门户统一导航")
+    cols[1].metric("业务 Demo", "6", "门户统一导航")
     cols[2].metric("核心对象", "case_id", "贯穿全链路")
-    cols[3].metric("高风险策略", "转人工", "赔付/监管/舆情")
-    cols[4].metric("2.0 方向", "自主优化", "发现-反馈-改进")
+    cols[3].metric("高风险策略", "转人工", "赔付 / 监管 / 舆情")
+    cols[4].metric("2.0 方向", "自主优化", "发现 - 反馈 - 改进")
 
 
-def render_layer(layer: Layer) -> None:
+def render_layer(layer: SystemLayer) -> None:
     demo_tags = "".join(f'<span class="pill">{demo}</span>' for demo in layer.demos)
-    items = "".join(f"<li>{item}</li>" for item in layer.items)
+    capability_tags = "".join(f'<span class="pill">{item}</span>' for item in layer.capabilities)
     st.markdown(
         f"""
         <div class="layer-card">
-            <h3>{layer.title}</h3>
-            <div class="muted"><strong>{layer.subtitle}</strong></div>
-            <ul>{items}</ul>
-            <div class="muted"><strong>系统意义：</strong>{layer.system_meaning}</div>
-            <div style="margin-top:10px;">{demo_tags}</div>
+            <div class="layer-index">{layer.index}</div>
+            <div>
+                <h3>{layer.title}</h3>
+                <div class="subtle"><strong>{layer.subtitle}</strong></div>
+                <p class="subtle">{layer.role}</p>
+                <div>{capability_tags}</div>
+            </div>
+            <div>
+                <div class="section-label">关联 demo</div>
+                <div>{demo_tags}</div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -351,10 +477,10 @@ def render_demo_card(demo: DemoLink) -> None:
         <div class="demo-card">
             <span class="pill">{demo.layer}</span>
             <h3>{demo.name}</h3>
-            <div class="muted"><strong>职责：</strong>{demo.purpose}</div>
-            <div class="muted"><strong>输入：</strong>{demo.input_text}</div>
-            <div class="muted"><strong>输出：</strong>{demo.output_text}</div>
-            <div class="muted"><strong>边界：</strong>{demo.boundary}</div>
+            <p class="subtle"><strong>职责：</strong>{demo.purpose}</p>
+            <p class="subtle"><strong>输入：</strong>{demo.input_text}</p>
+            <p class="subtle"><strong>输出：</strong>{demo.output_text}</p>
+            <p class="subtle"><strong>边界：</strong>{demo.boundary}</p>
             <a class="open-link" href="{demo.url}" target="_blank">打开 demo</a>
         </div>
         """,
@@ -376,18 +502,24 @@ def render_demos() -> None:
 
 def render_case_flow() -> None:
     st.subheader("Case 流转示例")
-    st.caption("这里展示的是后台应如何把客户问题映射到 case、风险、知识和人工动作。")
+    st.caption("展示后台应如何把客户问题映射到 case、风险、知识和人工动作。")
     for case in SAMPLE_CASES:
-        high_risk = "监管" in case["risk"] or "赔付" in case["risk"]
-        risk_class = "risk-high" if high_risk else "risk-low"
+        risk_class = "risk-high" if case["severity"] == "high" else "risk-low"
         st.markdown(
             f"""
             <div class="case-row">
-                <strong>{case["case_id"]}</strong>
-                <div class="muted">客户问题：{case["topic"]}</div>
-                <div class="muted">流转层级：{case["layer"]}</div>
-                <div class="{risk_class}">风险：{case["risk"]}</div>
-                <div class="muted">下一步动作：{case["next_action"]}</div>
+                <div>
+                    <div class="case-id">{case["case_id"]}</div>
+                    <div class="subtle">{case["topic"]}</div>
+                </div>
+                <div>
+                    <div class="section-label">流转路径</div>
+                    <div>{case["route"]}</div>
+                </div>
+                <div>
+                    <div class="{risk_class}">{case["risk"]}</div>
+                    <div class="subtle">next_action: <strong>{case["action"]}</strong></div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
