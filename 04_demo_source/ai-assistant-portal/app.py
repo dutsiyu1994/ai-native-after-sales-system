@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+import pandas as pd
 import streamlit as st
 
 
@@ -186,37 +187,112 @@ SAMPLE_CASES = [
 BACKEND_CASES = [
     {
         "case_id": "CASE-AIR-001",
+        "created_at": "2026-06-16 10:20",
+        "updated_at": "2026-06-16 10:48",
+        "channel": "Web Chat",
+        "customer": "客户 A",
+        "intent": "refund_compensation_complaint",
         "source": "对客沟通机器人",
         "status": "handoff_pending",
         "priority": "P0",
         "risk_level": "high",
         "next_action": "human_handoff",
         "evidence_status": "partial",
+        "knowledge_refs": 2,
+        "feedback_count": 2,
+        "sla": "2h",
         "owner": "人工接管队列",
         "summary": "航班延误退票赔付，并提到民航局投诉；需人工确认政策边界和回复时限。",
     },
     {
         "case_id": "CASE-RAG-003",
+        "created_at": "2026-06-16 11:05",
+        "updated_at": "2026-06-16 11:06",
+        "channel": "小程序",
+        "customer": "客户 B",
+        "intent": "policy_inquiry",
         "source": "RAG 知识库",
         "status": "ai_answered",
         "priority": "P3",
         "risk_level": "low",
         "next_action": "standard_answer",
         "evidence_status": "sufficient",
+        "knowledge_refs": 3,
+        "feedback_count": 0,
+        "sla": "24h",
         "owner": "AI 自动答复",
         "summary": "自愿退票手续费咨询，知识命中且风险可控，可给标准解释。",
     },
     {
         "case_id": "CASE-QA-006",
+        "created_at": "2026-06-16 11:30",
+        "updated_at": "2026-06-16 12:10",
+        "channel": "人工工单",
+        "customer": "客户 C",
+        "intent": "quality_review",
         "source": "客服对话质检",
         "status": "review_required",
         "priority": "P1",
         "risk_level": "medium",
         "next_action": "quality_review",
         "evidence_status": "sufficient",
+        "knowledge_refs": 1,
+        "feedback_count": 1,
+        "sla": "8h",
         "owner": "质检复核",
         "summary": "客服回复中存在承诺边界不清，需复核并回流话术规则。",
     },
+    {
+        "case_id": "CASE-LOG-002",
+        "created_at": "2026-06-16 12:18",
+        "updated_at": "2026-06-16 12:24",
+        "channel": "企业微信",
+        "customer": "客户 D",
+        "intent": "logistics_inquiry",
+        "source": "客诉智能分类",
+        "status": "collecting_info",
+        "priority": "P2",
+        "risk_level": "low",
+        "next_action": "ask_followup",
+        "evidence_status": "missing",
+        "knowledge_refs": 0,
+        "feedback_count": 1,
+        "sla": "12h",
+        "owner": "AI 追问",
+        "summary": "物流迟迟未更新，客户尚未提供订单号，需继续补齐关键字段。",
+    },
+    {
+        "case_id": "CASE-VOC-009",
+        "created_at": "2026-06-16 13:05",
+        "updated_at": "2026-06-16 13:40",
+        "channel": "批量 VOC",
+        "customer": "多客户聚合",
+        "intent": "batch_risk_alert",
+        "source": "VOC 风险识别",
+        "status": "escalated",
+        "priority": "P1",
+        "risk_level": "medium",
+        "next_action": "create_ticket",
+        "evidence_status": "partial",
+        "knowledge_refs": 1,
+        "feedback_count": 2,
+        "sla": "4h",
+        "owner": "服务运营",
+        "summary": "同一物流节点相关咨询突增，需运营确认是否为批量异常并同步口径。",
+    },
+]
+
+
+CASE_STATUS_FLOW = [
+    ("new", "新建"),
+    ("collecting_info", "补齐信息"),
+    ("ai_answered", "AI 答复"),
+    ("handoff_pending", "待人工"),
+    ("human_in_progress", "人工处理中"),
+    ("review_required", "质检复核"),
+    ("escalated", "升级处理"),
+    ("resolved", "已解决"),
+    ("closed", "已关闭"),
 ]
 
 
@@ -538,6 +614,31 @@ def inject_css() -> None:
             color: #047857;
             background: #ecfdf5;
         }
+        .state-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .state-step {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 760;
+        }
+        .state-step.active {
+            border-color: #93c5fd;
+            background: #eff6ff;
+            color: var(--primary);
+        }
+        .state-step.done {
+            border-color: #bbf7d0;
+            background: #ecfdf5;
+            color: #047857;
+        }
         .case-id {
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
             font-size: 13px;
@@ -704,6 +805,93 @@ def _priority_class(priority: str, evidence_status: str = "") -> str:
     return ""
 
 
+def _status_stage(status: str) -> int:
+    order = [item[0] for item in CASE_STATUS_FLOW]
+    return order.index(status) if status in order else 0
+
+
+def _render_state_flow(status: str) -> None:
+    current = _status_stage(status)
+    steps = []
+    for idx, (key, label) in enumerate(CASE_STATUS_FLOW):
+        cls = "active" if key == status else "done" if idx < current else ""
+        steps.append(f'<span class="state-step {cls}">{label}</span>')
+    st.markdown(f'<div class="state-flow">{"".join(steps)}</div>', unsafe_allow_html=True)
+
+
+def _filter_cases(cases: list[dict], status: str, risk: str, priority: str, keyword: str) -> list[dict]:
+    result = cases
+    if status != "全部":
+        result = [case for case in result if case["status"] == status]
+    if risk != "全部":
+        result = [case for case in result if case["risk_level"] == risk]
+    if priority != "全部":
+        result = [case for case in result if case["priority"] == priority]
+    if keyword.strip():
+        kw = keyword.strip().lower()
+        result = [
+            case
+            for case in result
+            if kw in case["case_id"].lower()
+            or kw in case["summary"].lower()
+            or kw in case["intent"].lower()
+            or kw in case["owner"].lower()
+        ]
+    return result
+
+
+def render_case_center() -> list[dict]:
+    st.markdown("#### Case 中台列表")
+    status_options = ["全部"] + sorted({case["status"] for case in BACKEND_CASES})
+    risk_options = ["全部"] + sorted({case["risk_level"] for case in BACKEND_CASES})
+    priority_options = ["全部"] + sorted({case["priority"] for case in BACKEND_CASES})
+    f1, f2, f3, f4 = st.columns([1, 1, 1, 1.4])
+    status_filter = f1.selectbox("状态", status_options, key="ops_status_filter")
+    risk_filter = f2.selectbox("风险", risk_options, key="ops_risk_filter")
+    priority_filter = f3.selectbox("优先级", priority_options, key="ops_priority_filter")
+    keyword = f4.text_input("搜索 case / 意图 / 负责人", key="ops_keyword_filter")
+
+    filtered = _filter_cases(BACKEND_CASES, status_filter, risk_filter, priority_filter, keyword)
+    if not filtered:
+        st.info("当前筛选条件下没有 case。")
+        return []
+
+    table_rows = [
+        {
+            "case_id": case["case_id"],
+            "status": case["status"],
+            "priority": case["priority"],
+            "risk_level": case["risk_level"],
+            "next_action": case["next_action"],
+            "evidence": case["evidence_status"],
+            "owner": case["owner"],
+            "updated_at": case["updated_at"],
+        }
+        for case in filtered
+    ]
+    st.dataframe(pd.DataFrame(table_rows), width="stretch", hide_index=True)
+
+    selected_id = st.selectbox(
+        "查看 case 详情",
+        [case["case_id"] for case in filtered],
+        key="ops_selected_case",
+    )
+    selected = next(case for case in filtered if case["case_id"] == selected_id)
+    detail_cols = st.columns([1.2, 1, 1])
+    with detail_cols[0]:
+        st.markdown(f"**{selected['case_id']}｜{selected['intent']}**")
+        st.caption(f"{selected['channel']} / {selected['customer']} / {selected['source']}")
+        st.write(selected["summary"])
+    with detail_cols[1]:
+        st.metric("知识引用", selected["knowledge_refs"])
+        st.metric("反馈事件", selected["feedback_count"])
+    with detail_cols[2]:
+        st.metric("SLA", selected["sla"])
+        st.metric("负责人", selected["owner"])
+    _render_state_flow(selected["status"])
+    return filtered
+
+
 def render_operations_backend() -> None:
     st.subheader("运营后台 / Case 中台")
     st.caption("用统一 case_id 串联客户输入、AI 判断、知识依据、人工接管、质检和 2.0 优化任务。")
@@ -718,9 +906,11 @@ def render_operations_backend() -> None:
     cols[2].metric("高风险 Case", high)
     cols[3].metric("人工回填", len(HUMAN_HANDOFF_RECORDS), delta=f"{unresolved} 条待优化")
 
+    filtered_cases = render_case_center()
+
     st.markdown('<div class="section-label">Case 队列</div>', unsafe_allow_html=True)
     case_cards = []
-    for case in BACKEND_CASES:
+    for case in filtered_cases or BACKEND_CASES:
         priority_class = _priority_class(case["priority"], case["evidence_status"])
         case_cards.append(
             f"""
