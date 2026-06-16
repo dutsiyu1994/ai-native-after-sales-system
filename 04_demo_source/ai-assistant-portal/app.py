@@ -8,10 +8,31 @@ operations backend, and the 2.0 optimization layer.
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+try:
+    from ai_native_shared.service_api import (
+        API_ENDPOINTS,
+        get_database_health,
+        get_ops_metrics,
+        list_case_records,
+        list_feedback_records,
+    )
+except Exception as exc:  # pragma: no cover - Streamlit fallback path
+    API_ENDPOINTS = []
+    _SERVICE_API_IMPORT_ERROR = str(exc)
+else:
+    _SERVICE_API_IMPORT_ERROR = ""
 
 
 st.set_page_config(
@@ -842,16 +863,33 @@ def _filter_cases(cases: list[dict], status: str, risk: str, priority: str, keyw
 
 def render_case_center() -> list[dict]:
     st.markdown("#### Case 中台列表")
-    status_options = ["全部"] + sorted({case["status"] for case in BACKEND_CASES})
-    risk_options = ["全部"] + sorted({case["risk_level"] for case in BACKEND_CASES})
-    priority_options = ["全部"] + sorted({case["priority"] for case in BACKEND_CASES})
+    base_payload = list_case_records(fallback_cases=BACKEND_CASES) if not _SERVICE_API_IMPORT_ERROR else {
+        "data": {"items": BACKEND_CASES, "source": "fallback", "total": len(BACKEND_CASES), "filtered": len(BACKEND_CASES)}
+    }
+    base_cases = base_payload["data"]["items"]
+    status_options = ["全部"] + sorted({case["status"] for case in base_cases})
+    risk_options = ["全部"] + sorted({case["risk_level"] for case in base_cases})
+    priority_options = ["全部"] + sorted({case["priority"] for case in base_cases})
     f1, f2, f3, f4 = st.columns([1, 1, 1, 1.4])
     status_filter = f1.selectbox("状态", status_options, key="ops_status_filter")
     risk_filter = f2.selectbox("风险", risk_options, key="ops_risk_filter")
     priority_filter = f3.selectbox("优先级", priority_options, key="ops_priority_filter")
     keyword = f4.text_input("搜索 case / 意图 / 负责人", key="ops_keyword_filter")
 
-    filtered = _filter_cases(BACKEND_CASES, status_filter, risk_filter, priority_filter, keyword)
+    if _SERVICE_API_IMPORT_ERROR:
+        filtered = _filter_cases(BACKEND_CASES, status_filter, risk_filter, priority_filter, keyword)
+        data_source = "fallback"
+    else:
+        payload = list_case_records(
+            status=status_filter,
+            risk_level=risk_filter,
+            priority=priority_filter,
+            keyword=keyword,
+            fallback_cases=BACKEND_CASES,
+        )
+        filtered = payload["data"]["items"]
+        data_source = payload["data"]["source"]
+    st.caption(f"数据来源: {data_source} / 接口: GET /api/v1/cases")
     if not filtered:
         st.info("当前筛选条件下没有 case。")
         return []
@@ -892,21 +930,55 @@ def render_case_center() -> list[dict]:
     return filtered
 
 
+def render_api_database_panel() -> None:
+    st.markdown("#### API / 数据库接口")
+    if _SERVICE_API_IMPORT_ERROR:
+        st.warning(f"共享接口层加载失败: {_SERVICE_API_IMPORT_ERROR}")
+        return
+
+    db_health = get_database_health()
+    health = db_health["data"]
+    cols = st.columns(4)
+    cols[0].metric("DB Engine", health["engine"])
+    cols[1].metric("Case Rows", health["case_count"])
+    cols[2].metric("Tables", len(health["tables"]))
+    cols[3].metric("Writable", "Yes" if health["writable"] else "No")
+    st.caption(f"SQLite path: {health['case_db_path']}")
+
+    endpoint_rows = [
+        {
+            "method": endpoint["method"],
+            "path": endpoint["path"],
+            "name": endpoint["name"],
+            "storage": endpoint["storage"],
+            "purpose": endpoint["purpose"],
+        }
+        for endpoint in API_ENDPOINTS
+    ]
+    st.dataframe(pd.DataFrame(endpoint_rows), width="stretch", hide_index=True)
+
+
 def render_operations_backend() -> None:
     st.subheader("运营后台 / Case 中台")
     st.caption("用统一 case_id 串联客户输入、AI 判断、知识依据、人工接管、质检和 2.0 优化任务。")
 
-    total = len(BACKEND_CASES)
-    handoff = sum(1 for c in BACKEND_CASES if c["next_action"] == "human_handoff")
-    high = sum(1 for c in BACKEND_CASES if c["risk_level"] == "high")
-    unresolved = sum(1 for e in FEEDBACK_EVENTS if e["priority"] in ("P0", "P1"))
+    if _SERVICE_API_IMPORT_ERROR:
+        metrics = {
+            "case_total": len(BACKEND_CASES),
+            "handoff_pending": sum(1 for c in BACKEND_CASES if c["next_action"] == "human_handoff"),
+            "high_risk": sum(1 for c in BACKEND_CASES if c["risk_level"] == "high"),
+            "unresolved_feedback": sum(1 for e in FEEDBACK_EVENTS if e["priority"] in ("P0", "P1")),
+        }
+    else:
+        metrics = get_ops_metrics(fallback_cases=BACKEND_CASES)["data"]
     cols = st.columns(4)
-    cols[0].metric("Case 队列", total)
-    cols[1].metric("待人工接管", handoff)
-    cols[2].metric("高风险 Case", high)
-    cols[3].metric("人工回填", len(HUMAN_HANDOFF_RECORDS), delta=f"{unresolved} 条待优化")
+    cols[0].metric("Case 队列", metrics["case_total"])
+    cols[1].metric("待人工接管", metrics["handoff_pending"])
+    cols[2].metric("高风险 Case", metrics["high_risk"])
+    cols[3].metric("人工回填", len(HUMAN_HANDOFF_RECORDS), delta=f"{metrics['unresolved_feedback']} 条待优化")
 
     filtered_cases = render_case_center()
+    render_api_database_panel()
 
     st.markdown('<div class="section-label">Case 队列</div>', unsafe_allow_html=True)
     case_cards = []
@@ -953,15 +1025,22 @@ def render_operations_backend() -> None:
     left, right = st.columns([1, 1])
     with left:
         st.markdown("#### 反馈事件队列")
-        for event in FEEDBACK_EVENTS:
+        feedback_payload = (
+            {"data": {"items": FEEDBACK_EVENTS, "source": "fallback"}}
+            if _SERVICE_API_IMPORT_ERROR
+            else list_feedback_records(fallback_events=FEEDBACK_EVENTS)
+        )
+        st.caption(f"数据来源: {feedback_payload['data']['source']} / 接口: GET /api/v1/feedback-events")
+        for event in feedback_payload["data"]["items"]:
             priority_class = _priority_class(event["priority"])
+            source = event.get("source") or event.get("source_module", "")
             st.markdown(
                 f"""
                 <div class="ops-card">
                     <div class="ops-meta">
                         <span class="status-chip {priority_class}">{event["priority"]}</span>
                         <span class="status-chip">{event["event_type"]}</span>
-                        <span class="status-chip">{event["source"]}</span>
+                        <span class="status-chip">{source}</span>
                     </div>
                     <div class="case-id">{event["case_id"]}</div>
                     <p class="subtle"><strong>根因：</strong>{event["root_cause"]}</p>

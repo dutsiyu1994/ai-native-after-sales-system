@@ -46,6 +46,15 @@ from .feedback_store import (
     init_db as init_feedback_db,
 )
 
+from .service_api import (
+    API_ENDPOINTS,
+    list_case_records,
+    get_case_detail,
+    list_feedback_records,
+    get_ops_metrics,
+    get_database_health,
+)
+
 __all__ = [
     "generate_case_id",
     "build_case_context",
@@ -71,4 +80,10 @@ __all__ = [
     "resolve_event",
     "delete_event",
     "init_feedback_db",
+    "API_ENDPOINTS",
+    "list_case_records",
+    "get_case_detail",
+    "list_feedback_records",
+    "get_ops_metrics",
+    "get_database_health",
 ]

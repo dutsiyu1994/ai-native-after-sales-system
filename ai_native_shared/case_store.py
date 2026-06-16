@@ -25,6 +25,12 @@ DB_PATH = os.path.abspath(
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS cases (
     case_id         TEXT PRIMARY KEY,
+    source          TEXT NOT NULL DEFAULT 'customer_agent',
+    status          TEXT NOT NULL DEFAULT 'new',
+    priority        TEXT NOT NULL DEFAULT 'P2',
+    risk_level      TEXT NOT NULL DEFAULT 'low',
+    evidence_status TEXT NOT NULL DEFAULT 'missing',
+    next_action     TEXT NOT NULL DEFAULT 'continue_inquiry',
     customer_intent TEXT NOT NULL DEFAULT 'general_inquiry',
     risk_tags       TEXT NOT NULL DEFAULT '[]',           -- JSON 数组
     slot_status     TEXT NOT NULL DEFAULT '{}',           -- JSON 对象
@@ -42,9 +48,21 @@ CREATE TABLE IF NOT EXISTS cases (
 
 CREATE_INDEXES_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_customer_intent ON cases(customer_intent);",
+    "CREATE INDEX IF NOT EXISTS idx_status ON cases(status);",
+    "CREATE INDEX IF NOT EXISTS idx_priority ON cases(priority);",
+    "CREATE INDEX IF NOT EXISTS idx_risk_level ON cases(risk_level);",
     "CREATE INDEX IF NOT EXISTS idx_risk_tags ON cases(risk_tags);",
     "CREATE INDEX IF NOT EXISTS idx_created_at ON cases(created_at DESC);",
 ]
+
+MIGRATION_COLUMNS = {
+    "source": "TEXT NOT NULL DEFAULT 'customer_agent'",
+    "status": "TEXT NOT NULL DEFAULT 'new'",
+    "priority": "TEXT NOT NULL DEFAULT 'P2'",
+    "risk_level": "TEXT NOT NULL DEFAULT 'low'",
+    "evidence_status": "TEXT NOT NULL DEFAULT 'missing'",
+    "next_action": "TEXT NOT NULL DEFAULT 'continue_inquiry'",
+}
 
 
 def _get_conn() -> sqlite3.Connection:
@@ -77,6 +95,12 @@ def init_db(conn: Optional[sqlite3.Connection] = None) -> None:
         own_conn = False
     try:
         conn.execute(CREATE_TABLE_SQL)
+        existing_columns = {
+            row["name"] for row in conn.execute("PRAGMA table_info(cases)").fetchall()
+        }
+        for column_name, column_def in MIGRATION_COLUMNS.items():
+            if column_name not in existing_columns:
+                conn.execute(f"ALTER TABLE cases ADD COLUMN {column_name} {column_def}")
         for idx_sql in CREATE_INDEXES_SQL:
             conn.execute(idx_sql)
         conn.commit()
@@ -151,11 +175,18 @@ def save_case(case_context: dict) -> str:
 
         conn.execute(
             """INSERT INTO cases (
-                case_id, customer_intent, risk_tags, slot_status,
+                case_id, source, status, priority, risk_level, evidence_status,
+                next_action, customer_intent, risk_tags, slot_status,
                 knowledge_refs, handoff_summary, conversation,
                 feedback_events, state_history, created_at, updated_at, is_active
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ON CONFLICT(case_id) DO UPDATE SET
+                source = excluded.source,
+                status = excluded.status,
+                priority = excluded.priority,
+                risk_level = excluded.risk_level,
+                evidence_status = excluded.evidence_status,
+                next_action = excluded.next_action,
                 customer_intent = excluded.customer_intent,
                 risk_tags = excluded.risk_tags,
                 slot_status = excluded.slot_status,
@@ -169,6 +200,12 @@ def save_case(case_context: dict) -> str:
             """,
             (
                 case_id,
+                case_context.get("source", "customer_agent"),
+                case_context.get("status", "new"),
+                case_context.get("priority", "P2"),
+                case_context.get("risk_level", "low"),
+                case_context.get("evidence_status", "missing"),
+                case_context.get("next_action", "continue_inquiry"),
                 case_context.get("customer_intent", "general_inquiry"),
                 json.dumps(case_context.get("risk_tags", []), ensure_ascii=False),
                 json.dumps(slot_status, ensure_ascii=False),
