@@ -90,16 +90,46 @@ def api_response(data: Any = None, ok: bool = True, error: str = "") -> dict[str
     }
 
 
+def _as_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return []
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _count_or_len(value: Any) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, (list, tuple, dict, set)):
+        return len(value)
+    return 1
+
+
 def normalize_case_record(case: dict[str, Any]) -> dict[str, Any]:
-    risk_tags = case.get("risk_tags") or []
-    knowledge_refs = case.get("knowledge_refs") or []
-    feedback_events = case.get("feedback_events") or []
-    state_history = case.get("state_history") or []
-    conversation = case.get("conversation") or []
-    slot_status = case.get("slot_status") or {}
+    raw_knowledge_refs = case.get("knowledge_refs")
+    raw_feedback_events = case.get("feedback_events")
+    raw_state_history = case.get("state_history")
+
+    risk_tags = _as_list(case.get("risk_tags"))
+    knowledge_refs = _as_list(raw_knowledge_refs)
+    feedback_events = _as_list(raw_feedback_events)
+    state_history = _as_list(raw_state_history)
+    conversation = _as_list(case.get("conversation"))
+    slot_status = _as_dict(case.get("slot_status"))
 
     latest_message = ""
-    if conversation:
+    if conversation and isinstance(conversation[-1], dict):
         latest_message = conversation[-1].get("content", "")
 
     missing_slot_count = sum(
@@ -136,9 +166,9 @@ def normalize_case_record(case: dict[str, Any]) -> dict[str, Any]:
         ),
         "next_action": next_action,
         "owner": case.get("owner", "AI orchestration"),
-        "knowledge_refs": len(knowledge_refs),
-        "feedback_count": len(feedback_events),
-        "state_history_count": len(state_history),
+        "knowledge_refs": _count_or_len(raw_knowledge_refs),
+        "feedback_count": _count_or_len(raw_feedback_events),
+        "state_history_count": _count_or_len(raw_state_history),
         "sla": case.get("sla", "By priority"),
         "risk_tags": risk_tags,
         "slot_status": slot_status,
@@ -212,7 +242,7 @@ def get_case_detail(case_id: str, fallback_cases: list[dict[str, Any]] | None = 
     if fallback_cases:
         for case in fallback_cases:
             if case.get("case_id") == case_id:
-                return api_response({"item": case, "source": "fallback"})
+                return api_response({"item": normalize_case_record(case), "source": "fallback"})
     return api_response(None, ok=False, error="case_not_found")
 
 

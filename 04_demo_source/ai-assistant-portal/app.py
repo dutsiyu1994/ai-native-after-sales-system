@@ -849,6 +849,32 @@ def _tag_text(items: list | tuple | None, empty: str = "无") -> str:
     return " / ".join(str(item) for item in items)
 
 
+def _as_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return []
+
+
+def _as_dict(value):
+    return value if isinstance(value, dict) else {}
+
+
+def _count_or_len(value) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, (list, tuple, dict, set)):
+        return len(value)
+    return 1
+
+
 def render_case_detail_panel(selected: dict, data_source: str) -> None:
     case_id = selected["case_id"]
     if _SERVICE_API_IMPORT_ERROR:
@@ -863,12 +889,15 @@ def render_case_detail_panel(selected: dict, data_source: str) -> None:
         feedback_payload = list_feedback_records(case_id=case_id, fallback_events=FEEDBACK_EVENTS)
 
     raw = detail.get("raw", detail)
-    state_history = detail.get("state_history") or raw.get("state_history", [])
-    slot_status = detail.get("slot_status") or raw.get("slot_status", {})
-    risk_tags = detail.get("risk_tags") or raw.get("risk_tags", [])
-    knowledge_refs = detail.get("knowledge_ref_items") or raw.get("knowledge_refs", [])
-    conversation = detail.get("conversation") or raw.get("conversation", [])
-    case_feedback = feedback_payload["data"]["items"]
+    raw = raw if isinstance(raw, dict) else {}
+    state_history = _as_list(detail.get("state_history")) or _as_list(raw.get("state_history"))
+    slot_status = _as_dict(detail.get("slot_status")) or _as_dict(raw.get("slot_status"))
+    risk_tags = _as_list(detail.get("risk_tags")) or _as_list(raw.get("risk_tags"))
+    knowledge_refs = _as_list(detail.get("knowledge_ref_items")) or _as_list(raw.get("knowledge_refs"))
+    conversation = _as_list(detail.get("conversation")) or _as_list(raw.get("conversation"))
+    feedback_data = _as_dict(feedback_payload.get("data"))
+    case_feedback = _as_list(feedback_data.get("items"))
+    knowledge_ref_count = _count_or_len(detail.get("knowledge_refs")) or len(knowledge_refs)
 
     st.markdown("#### Case 详情 / 审计视图")
     st.caption(f"case_id: {case_id} / 数据来源: {detail_source} / 接口: GET /api/v1/cases/{case_id}")
@@ -882,7 +911,7 @@ def render_case_detail_panel(selected: dict, data_source: str) -> None:
         st.metric("状态历史", len(state_history))
         st.metric("风险标签", len(risk_tags))
     with overview_cols[2]:
-        st.metric("知识引用", len(knowledge_refs))
+        st.metric("知识引用", knowledge_ref_count)
         st.metric("反馈事件", len(case_feedback))
 
     _render_state_flow(detail["status"])
