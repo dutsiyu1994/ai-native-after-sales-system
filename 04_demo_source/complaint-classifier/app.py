@@ -15,6 +15,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import os
 import json
+import sys
+
+_SHARED_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _SHARED_PATH not in sys.path:
+    sys.path.insert(0, _SHARED_PATH)
+
+from ai_native_shared.ui_theme import inject_demo_ui, render_demo_hero
 
 # ═══════════════════════════════════════════════════════════
 # 页面配置
@@ -1329,12 +1336,18 @@ def generate_keyword_results(df):
 
 def main():
     init_session()
+    inject_demo_ui()
+
+    render_demo_hero(
+        title="客诉智能分类系统",
+        subtitle="Case 路由服务：把非结构化投诉转成类别、优先级、置信度和下一站模块，支撑人工复核与风险预警。",
+        chips=("case routing", "priority", "confidence", "review_required"),
+        status={"链路位置": "AI 服务编排层 / Case 中台", "默认引擎": "关键词规则", "输出对象": "routing_result"},
+    )
 
     # 标题栏
     c1, c2 = st.columns([3, 1])
     with c1:
-        st.title("🔍 客诉智能分类系统")
-        st.caption("多模型 AI 引擎 | 关键词规则 + Ollama + DeepSeek + Gemini + Groq")
         st.info(
             "**生产链路位置**：本模块不是通用文本分类器，而是 AI native 售后服务系统中的 **case 路由服务**："
             "决定服务问题进入知识回答、人工复核、风险预警、摘要还是质检链路。"

@@ -14,6 +14,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 import json
 import os
+import sys
+
+_SHARED_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _SHARED_PATH not in sys.path:
+    sys.path.insert(0, _SHARED_PATH)
+
+from ai_native_shared.ui_theme import inject_demo_ui, render_demo_hero
 
 st.set_page_config(
     page_title="AI客服质检系统",
@@ -775,11 +782,17 @@ def show_batch(conversations, model_key, client):
 
 def main():
     init_session()
+    inject_demo_ui()
+
+    render_demo_hero(
+        title="客服对话质量评估",
+        subtitle="服务质量反馈层：把 AI/人工回复拆成准确性、共情、流程合规和承诺边界，形成 badcase 与优化任务。",
+        chips=("quality_score", "issue_tags", "root_cause", "suggested_action"),
+        status={"链路位置": "运营后台 / 2.0 优化层", "默认引擎": "规则质检", "输出对象": "feedback_event"},
+    )
 
     c1, c2 = st.columns([3, 1])
     with c1:
-        st.title("🎧 客服对话质量评估")
-        st.caption("默认规则引擎无需 API Key | 识别需求 · 有效共情 · 达成一致 · 承诺回复")
         # 业务定位
         st.info(
             '**业务定位：** AI 质检的难点不是让模型打分，而是让评分标准被业务认可。'

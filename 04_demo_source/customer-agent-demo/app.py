@@ -38,6 +38,7 @@ try:
     from ai_native_shared.feedback_schema import build_feedback_event
     from ai_native_shared.case_store import save_case
     from ai_native_shared.feedback_store import save_event
+    from ai_native_shared.ui_theme import inject_demo_ui, render_demo_hero
 except ImportError as _e:
     st.error(f"导入 ai_native_shared 失败: {_e}")
     st.info(f"当前 sys.path: {sys.path}")
@@ -821,11 +822,16 @@ def render_bottom():
 
 def main():
     inject_css()
+    inject_demo_ui()
     provider = render_sidebar()
     st.session_state["_provider"] = provider
 
-    st.title("🤖 对客沟通机器人 v1.1")
-    st.caption("多轮槽位继承 | 同一 case_id | 高风险转人工 | 低风险标准答复 | DeepSeek LLM 驱动")
+    render_demo_hero(
+        title="对客沟通机器人 v1.1",
+        subtitle="售后服务系统信息输入端：承接客户自然语言，沉淀 case_context，并完成风险判断、知识引用和转人工决策。",
+        chips=("case_id", "slots", "risk_tags", "next_action", "handoff_summary"),
+        status={"链路位置": "客户入口 / AI 服务编排层", "LLM": "DeepSeek / 规则兜底", "边界": "高风险转人工"},
+    )
     st.info(
         "**系统定位**：AI native 售后服务系统的信息输入端。"
         "同一会话内 case_id 不变，字段跨轮累积，高风险场景优先转人工，"

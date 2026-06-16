@@ -17,6 +17,13 @@ import plotly.graph_objects as go
 import os
 import json
 import re
+import sys
+
+_SHARED_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _SHARED_PATH not in sys.path:
+    sys.path.insert(0, _SHARED_PATH)
+
+from ai_native_shared.ui_theme import inject_demo_ui, render_demo_hero
 
 # 尝试导入可选依赖
 try:
@@ -1296,10 +1303,16 @@ def show_voc_results(df, stat_clusters, time_anomalies, ai_clusters, model_key, 
 
 def main():
     init_session()
+    inject_demo_ui()
+    render_demo_hero(
+        title="VOC 批量异常风险识别与预警系统",
+        subtitle="运营风险发现层：从批量 VOC、服务摘要和 case 信号中识别异常聚集、监管风险和需要介入的趋势。",
+        chips=("risk_level", "trend_signal", "owner_role", "recommended_action"),
+        status={"链路位置": "运营后台 / 2.0 优化层", "默认引擎": "统计聚类", "输出对象": "risk alert"},
+    )
+
     c1, c2 = st.columns([3, 1])
     with c1:
-        st.title("🚨 VOC批量异常风险识别与预警系统")
-        st.caption("多引擎架构 | 统计聚类 + AI 语义聚类 + 时间序列检测")
         st.info(
             "**生产链路位置**：本模块接收对客沟通和服务摘要中的 `case_context`，"
             "用于识别批量异常、监管舆情风险和需要运营介入的事件。"

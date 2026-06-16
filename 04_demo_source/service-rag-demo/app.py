@@ -25,6 +25,7 @@ if _SHARED_PATH not in sys.path:
 
 from ai_native_shared.case_schema import generate_case_id
 from ai_native_shared.knowledge_base import retrieve_knowledge as shared_retrieve, has_sufficient_evidence as shared_has_evidence
+from ai_native_shared.ui_theme import inject_demo_ui, render_demo_hero
 
 
 st.set_page_config(
@@ -190,8 +191,13 @@ def generate_answer(query: str, hits: pd.DataFrame) -> str:
 
 
 def render_header():
-    st.title("客服 SOP 知识库问答")
-    st.caption("轻量 RAG 原型 | 默认无需 API Key | 文档切分 → 检索 → 引用依据 → 结构化回答")
+    inject_demo_ui()
+    render_demo_hero(
+        title="客服 SOP 知识库问答",
+        subtitle="统一知识服务层：把售后政策、SOP 和风险规则转成可引用、可追溯、可人工确认的依据。",
+        chips=("RAG 知识检索", "knowledge_refs", "evidence_status", "human_confirm_required"),
+        status={"链路位置": "AI 服务编排层", "默认模式": "TF-IDF 兜底", "风险边界": "高风险需人工确认"},
+    )
     st.info(
         "业务定位：本模块是对客沟通机器人和人工接管的统一知识服务。"
         " RAG 提供依据检索和处理建议，不替代人工做赔付承诺；证据不足时不强答，输出 human_handoff 信号。"

@@ -16,6 +16,13 @@ import plotly.graph_objects as go
 import json
 import os
 import re
+import sys
+
+_SHARED_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _SHARED_PATH not in sys.path:
+    sys.path.insert(0, _SHARED_PATH)
+
+from ai_native_shared.ui_theme import inject_demo_ui, render_demo_hero
 
 st.set_page_config(
     page_title="智能总结概要系统",
@@ -1239,11 +1246,17 @@ def show_batch_analysis(data_list, model_key, client):
 
 def main():
     init_session()
+    inject_demo_ui()
+
+    render_demo_hero(
+        title="服务事件智能摘要",
+        subtitle="Case 信息压缩层：把长对话、日志和处理动作压缩为可交接、可质检、可复盘的结构化摘要。",
+        chips=("handoff_summary", "service_summary", "key_facts", "pending_items"),
+        status={"链路位置": "Case 中台 / 运营后台", "默认引擎": "模板摘要", "输出对象": "case_summary"},
+    )
 
     c1, c2 = st.columns([3, 1])
     with c1:
-        st.title("📝 服务事件智能摘要")
-        st.caption("默认模板摘要无需 API Key | 对话/日志/备注 → 结构化事件摘要")
         # 业务定位
         st.info(
             '**业务定位：** 这个 Demo 不是普通摘要工具，而是模拟投诉/客服工单中的"信息输入标准化"：'
