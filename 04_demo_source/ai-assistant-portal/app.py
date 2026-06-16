@@ -245,13 +245,41 @@ FEEDBACK_EVENTS = [
         "root_cause": "script_issue",
         "suggested_action": "把客服承诺词过滤规则同步到 AI 回复和人工话术审核。",
     },
+    {
+        "event_type": "human_modification",
+        "case_id": "CASE-AIR-001",
+        "source": "human_handoff",
+        "priority": "P0",
+        "root_cause": "policy_unclear",
+        "suggested_action": "人工确认赔付边界后，回流监管投诉 SOP 和对客话术边界。",
+    },
+]
+
+
+HUMAN_HANDOFF_RECORDS = [
+    {
+        "case_id": "CASE-AIR-001",
+        "handler": "人工客服A",
+        "outcome": "继续跟进",
+        "ai_review": "AI判断正确",
+        "root_cause": "policy_unclear",
+        "note": "已安抚客户并说明需要核实航班延误和票规，承诺 24 小时内补充处理进度。",
+    },
+    {
+        "case_id": "CASE-QA-006",
+        "handler": "质检专员B",
+        "outcome": "已解决",
+        "ai_review": "话术需优化",
+        "root_cause": "script_issue",
+        "note": "人工修改了承诺边界，建议同步到 AI 回复过滤和客服标准话术。",
+    },
 ]
 
 
 INSIGHT_TASKS = [
     {
         "title": "监管投诉场景转人工规则加严",
-        "input": "handoff_reason + regulatory risk",
+        "input": "handoff_reason + human_modification + regulatory risk",
         "action": "调整风险规则",
         "expected": "提升高风险正确转人工率，降低越权答复风险。",
     },
@@ -688,7 +716,7 @@ def render_operations_backend() -> None:
     cols[0].metric("Case 队列", total)
     cols[1].metric("待人工接管", handoff)
     cols[2].metric("高风险 Case", high)
-    cols[3].metric("待优化事件", unresolved)
+    cols[3].metric("人工回填", len(HUMAN_HANDOFF_RECORDS), delta=f"{unresolved} 条待优化")
 
     st.markdown('<div class="section-label">Case 队列</div>', unsafe_allow_html=True)
     case_cards = []
@@ -712,6 +740,25 @@ def render_operations_backend() -> None:
             """
         )
     st.markdown(f'<div class="ops-grid">{"".join(case_cards)}</div>', unsafe_allow_html=True)
+
+    st.markdown("#### 人工接管回填")
+    handoff_cards = []
+    for record in HUMAN_HANDOFF_RECORDS:
+        handoff_cards.append(
+            f"""
+            <div class="ops-card">
+                <div class="case-id">{record["case_id"]}</div>
+                <div class="ops-meta">
+                    <span class="status-chip">{record["handler"]}</span>
+                    <span class="status-chip">{record["outcome"]}</span>
+                    <span class="status-chip">{record["ai_review"]}</span>
+                </div>
+                <p class="subtle"><strong>根因：</strong>{record["root_cause"]}</p>
+                <p class="subtle"><strong>处理说明：</strong>{record["note"]}</p>
+            </div>
+            """
+        )
+    st.markdown(f'<div class="ops-grid">{"".join(handoff_cards)}</div>', unsafe_allow_html=True)
 
     left, right = st.columns([1, 1])
     with left:

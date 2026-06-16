@@ -169,6 +169,7 @@ SESSION_DEFAULTS: dict = {
     "case_context": None,
     "state_history": [],
     "feedback_events": [],
+    "human_updates": [],
     "metrics": {
         "total_cases": 0,
         "handoff_count": 0,
@@ -342,6 +343,65 @@ def build_operating_fields(slots: dict, risks: list[str], hits: list[dict], next
         "evidence_status": evidence_status,
         "decision_reason": decision_reason,
     }
+
+
+def build_human_resolution_record(
+    case_id: str,
+    handler: str,
+    outcome: str,
+    ai_review: str,
+    root_cause: str,
+    note: str,
+    followup_required: bool,
+) -> dict:
+    """构建人工接管后的回填记录，用于 case 回放和反馈闭环."""
+    return {
+        "case_id": case_id,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "handler": handler.strip() or "human_agent",
+        "outcome": outcome,
+        "ai_review": ai_review,
+        "root_cause": root_cause,
+        "note": note.strip(),
+        "followup_required": followup_required,
+    }
+
+
+def apply_human_resolution(ctx: dict, record: dict) -> dict:
+    """把人工回填写回 case_context，并更新 case 状态."""
+    updated = dict(ctx)
+    records = list(updated.get("human_resolution_records", []))
+    records.append(record)
+    updated["human_resolution_records"] = records
+    updated["human_review_result"] = record["ai_review"]
+    updated["human_root_cause"] = record["root_cause"]
+    updated["human_latest_note"] = record["note"]
+
+    if record["outcome"] == "已解决":
+        updated["status"] = "resolved"
+        updated["next_action"] = "close_case"
+    elif record["outcome"] == "升级二线":
+        updated["status"] = "escalated"
+        updated["next_action"] = "escalate"
+    else:
+        updated["status"] = "human_in_progress"
+        updated["next_action"] = "human_followup"
+
+    history = list(updated.get("state_history", []))
+    history.append(
+        {
+            "turn": len(history) + 1,
+            "timestamp": record["created_at"],
+            "case_id": record["case_id"],
+            "status": updated["status"],
+            "next_action": updated["next_action"],
+            "human_outcome": record["outcome"],
+            "human_review_result": record["ai_review"],
+            "root_cause": record["root_cause"],
+        }
+    )
+    updated["state_history"] = history
+    return updated
 
 
 def build_handoff_summary(user_msg: str, slots: dict, risks: list[str], hits: list[dict]) -> str:
@@ -771,6 +831,8 @@ def render_right_panel():
         with st.container(border=True):
             st.markdown(ctx["handoff_summary"])
 
+    render_human_handoff_form(ctx)
+
     if ctx.get("decision_trace"):
         with st.expander("🧠 AI 判断链", expanded=False):
             st.json(ctx["decision_trace"])
@@ -780,6 +842,96 @@ def render_right_panel():
     if history:
         with st.expander(f"📜 状态变化记录 ({len(history)} 轮)", expanded=False):
             st.json(history)
+
+
+def render_human_handoff_form(ctx: dict) -> None:
+    """人工接管后的结果回填，形成 case 状态和反馈事件闭环."""
+    records = ctx.get("human_resolution_records", [])
+    if records:
+        st.markdown("**🧾 人工回填记录**")
+        for record in records[-3:]:
+            with st.container(border=True):
+                st.caption(f"{record['created_at']} | {record['handler']} | {record['outcome']}")
+                st.markdown(f"**AI 复核：**{record['ai_review']}")
+                st.markdown(f"**根因：**{record['root_cause']}")
+                if record.get("note"):
+                    st.markdown(f"**处理说明：**{record['note']}")
+
+    if ctx.get("status") not in ("handoff_pending", "human_in_progress", "escalated"):
+        return
+
+    st.markdown("**🧑‍💼 人工接管回填**")
+    with st.form("human_resolution_form"):
+        handler = st.text_input("处理人", value="人工客服A")
+        outcome = st.selectbox("处理结果", ["已解决", "继续跟进", "升级二线"])
+        ai_review = st.selectbox(
+            "AI 判断复核",
+            ["AI判断正确", "风险判断漏判", "风险判断误判", "知识依据不足", "话术需优化"],
+        )
+        root_cause = st.selectbox(
+            "问题根因",
+            ["policy_unclear", "knowledge_gap", "process_block", "product_issue", "script_issue", "human_error"],
+        )
+        followup_required = st.checkbox("需要后续跟进", value=outcome != "已解决")
+        note = st.text_area(
+            "人工处理说明",
+            placeholder="例如：已向客户解释退票政策，赔付金额需航司确认，承诺 24 小时内补充回复。",
+            height=96,
+        )
+        submitted = st.form_submit_button("提交人工回填", type="primary")
+
+    if submitted:
+        record = build_human_resolution_record(
+            case_id=ctx["case_id"],
+            handler=handler,
+            outcome=outcome,
+            ai_review=ai_review,
+            root_cause=root_cause,
+            note=note,
+            followup_required=followup_required,
+        )
+        updated_ctx = apply_human_resolution(ctx, record)
+        st.session_state["case_context"] = updated_ctx
+        st.session_state["state_history"] = updated_ctx["state_history"]
+        st.session_state["human_updates"].append(record)
+
+        event_type = "human_modification" if ai_review != "AI判断正确" else "handoff_reason"
+        priority = "P0" if updated_ctx.get("priority") == "P0" else "P1"
+        suggested_action_map = {
+            "风险判断漏判": "补充高风险识别规则，降低漏转人工概率。",
+            "风险判断误判": "调整风险阈值，减少低风险误转人工。",
+            "知识依据不足": "补充或更新知识库片段，提升证据命中率。",
+            "话术需优化": "优化对客回复 Prompt 和人工话术边界。",
+            "AI判断正确": "沉淀为可复用优秀 case，保留当前规则。",
+        }
+        ev = build_feedback_event(
+            case_id=ctx["case_id"],
+            event_type=event_type,
+            source_module="human_handoff",
+            description=f"人工回填：{outcome}；AI复核：{ai_review}；说明：{note[:80]}",
+            root_cause=root_cause,
+            suggested_action=suggested_action_map.get(ai_review, "人工复核后进入反馈闭环。"),
+            priority=priority,
+        )
+        st.session_state["feedback_events"].append(ev)
+
+        try:
+            save_event(
+                case_id=ctx["case_id"],
+                event_type=ev["event_type"],
+                source_module=ev["source_module"],
+                description=ev["description"],
+                root_cause=ev["root_cause"],
+                suggested_action=ev["suggested_action"],
+                priority=ev["priority"],
+            )
+            save_case(updated_ctx)
+            st.session_state["last_save_time"] = datetime.now().strftime("%H:%M:%S")
+        except Exception:
+            pass
+
+        st.success("人工回填已写入 case_context，并生成反馈事件。")
+        st.rerun()
 
 
 def render_bottom():
@@ -797,7 +949,7 @@ def render_bottom():
     cols[1].metric("转人工率", f"{m['handoff_count'] / total * 100:.0f}%")
     cols[2].metric("字段完整率", f"{field_complete:.0f}%")
     cols[3].metric("知识命中率", f"{m['knowledge_hit_count'] / knowledge_total * 100:.0f}%")
-    cols[4].metric("人工接管时长", "≈ 0s")
+    cols[4].metric("人工回填", len(st.session_state.get("human_updates", [])))
     cols[5].metric("重复描述", m["repeat_count"])
 
     if ctx:
@@ -815,7 +967,12 @@ def render_bottom():
     if events:
         with st.expander(f"📋 反馈事件 ({len(events)} 条)"):
             for ev in reversed(events[-10:]):
-                st.caption(f"[{ev['priority']}] {ev['event_type']} — {ev['description'][:100]}")
+                st.caption(
+                    f"[{ev['priority']}] {ev['event_type']} / {ev.get('source_module', '')} — "
+                    f"{ev['description'][:100]}"
+                )
+                if ev.get("suggested_action"):
+                    st.caption(f"建议：{ev['suggested_action']}")
 
 
 # ========== main ==========
