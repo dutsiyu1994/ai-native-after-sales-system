@@ -7,6 +7,7 @@ operations backend, and the 2.0 optimization layer.
 
 from __future__ import annotations
 
+from html import escape
 import os
 import sys
 from dataclasses import dataclass
@@ -681,6 +682,47 @@ def inject_css() -> None:
             padding: 16px;
             margin: 14px 0;
         }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 12px 0 18px;
+        }
+        .metric-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+            padding: 14px 15px;
+            min-height: 112px;
+            overflow: visible;
+        }
+        .metric-label {
+            color: #475569;
+            font-size: 13px;
+            font-weight: 780;
+            line-height: 1.35;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        .metric-value {
+            color: #0f172a;
+            font-size: 27px;
+            font-weight: 860;
+            line-height: 1.15;
+            margin-top: 12px;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        .metric-delta {
+            color: #0f766e;
+            font-size: 12px;
+            font-weight: 720;
+            line-height: 1.35;
+            margin-top: 8px;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
         @media (max-width: 900px) {
             .hero-grid,
             .layer-card,
@@ -726,13 +768,32 @@ def render_header() -> None:
     )
 
 
+def render_metric_cards(items: list[tuple[str, object, object | None]]) -> None:
+    cards = []
+    for label, value, delta in items:
+        delta_html = f'<div class="metric-delta">{escape(str(delta))}</div>' if delta else ""
+        cards.append(
+            f"""
+            <div class="metric-card">
+                <div class="metric-label">{escape(str(label))}</div>
+                <div class="metric-value">{escape(str(value))}</div>
+                {delta_html}
+            </div>
+            """
+        )
+    st.markdown(f'<div class="metric-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+
+
 def render_kpis() -> None:
-    cols = st.columns(5)
-    cols[0].metric("逻辑层", "5", "入口到优化")
-    cols[1].metric("业务 Demo", "6", "门户统一导航")
-    cols[2].metric("核心对象", "case_id", "贯穿全链路")
-    cols[3].metric("高风险策略", "转人工", "赔付 / 监管 / 舆情")
-    cols[4].metric("2.0 方向", "自主优化", "发现 - 反馈 - 改进")
+    render_metric_cards(
+        [
+            ("逻辑层", "5", "入口到优化"),
+            ("业务 Demo", "6", "门户统一导航"),
+            ("核心对象", "case_id", "贯穿全链路"),
+            ("高风险策略", "转人工", "赔付 / 监管 / 舆情"),
+            ("2.0 方向", "自主优化", "发现 - 反馈 - 改进"),
+        ]
+    )
 
 
 def render_layer(layer: SystemLayer) -> None:
@@ -908,11 +969,19 @@ def render_case_detail_panel(selected: dict, data_source: str) -> None:
         st.caption(f"{detail['channel']} / {detail['customer']} / {detail['source']}")
         st.write(detail["summary"])
     with overview_cols[1]:
-        st.metric("状态历史", len(state_history))
-        st.metric("风险标签", len(risk_tags))
+        render_metric_cards(
+            [
+                ("状态历史", len(state_history), None),
+                ("风险标签", len(risk_tags), None),
+            ]
+        )
     with overview_cols[2]:
-        st.metric("知识引用", knowledge_ref_count)
-        st.metric("反馈事件", len(case_feedback))
+        render_metric_cards(
+            [
+                ("知识引用", knowledge_ref_count, None),
+                ("反馈事件", len(case_feedback), None),
+            ]
+        )
 
     _render_state_flow(detail["status"])
 
@@ -1064,11 +1133,14 @@ def render_api_database_panel() -> None:
 
     db_health = get_database_health()
     health = db_health["data"]
-    cols = st.columns(4)
-    cols[0].metric("DB Engine", health["engine"])
-    cols[1].metric("Case Rows", health["case_count"])
-    cols[2].metric("Tables", len(health["tables"]))
-    cols[3].metric("Writable", "Yes" if health["writable"] else "No")
+    render_metric_cards(
+        [
+            ("DB Engine", health["engine"], None),
+            ("Case Rows", health["case_count"], None),
+            ("Tables", len(health["tables"]), None),
+            ("Writable", "Yes" if health["writable"] else "No", None),
+        ]
+    )
     st.caption(f"SQLite path: {health['case_db_path']}")
 
     endpoint_rows = [
@@ -1097,11 +1169,14 @@ def render_operations_backend() -> None:
         }
     else:
         metrics = get_ops_metrics(fallback_cases=BACKEND_CASES)["data"]
-    cols = st.columns(4)
-    cols[0].metric("Case 队列", metrics["case_total"])
-    cols[1].metric("待人工接管", metrics["handoff_pending"])
-    cols[2].metric("高风险 Case", metrics["high_risk"])
-    cols[3].metric("人工回填", len(HUMAN_HANDOFF_RECORDS), delta=f"{metrics['unresolved_feedback']} 条待优化")
+    render_metric_cards(
+        [
+            ("Case 队列", metrics["case_total"], None),
+            ("待人工接管", metrics["handoff_pending"], None),
+            ("高风险 Case", metrics["high_risk"], None),
+            ("人工回填", len(HUMAN_HANDOFF_RECORDS), f"{metrics['unresolved_feedback']} 条待优化"),
+        ]
+    )
 
     filtered_cases = render_case_center()
     render_api_database_panel()
@@ -1259,12 +1334,15 @@ def render_ops_metrics_dashboard() -> None:
         f"case_source: {dashboard['case_source']} / feedback_source: {dashboard['feedback_source']}"
     )
 
-    metric_cols = st.columns(5)
-    metric_cols[0].metric("自动解决率", f"{rates['auto_resolution_rate']}%", f"{summary['auto_resolved_cases']} case")
-    metric_cols[1].metric("转人工率", f"{rates['handoff_rate']}%", f"{summary['handoff_cases']} case")
-    metric_cols[2].metric("知识覆盖率", f"{rates['knowledge_support_rate']}%", f"{summary['knowledge_supported_cases']} case")
-    metric_cols[3].metric("高风险占比", f"{rates['high_risk_rate']}%", f"{summary['high_risk_cases']} case")
-    metric_cols[4].metric("反馈压力", f"{rates['feedback_pressure_rate']}%", f"{summary['unresolved_feedback']} open")
+    render_metric_cards(
+        [
+            ("自动解决率", f"{rates['auto_resolution_rate']}%", f"{summary['auto_resolved_cases']} case"),
+            ("转人工率", f"{rates['handoff_rate']}%", f"{summary['handoff_cases']} case"),
+            ("知识覆盖率", f"{rates['knowledge_support_rate']}%", f"{summary['knowledge_supported_cases']} case"),
+            ("高风险占比", f"{rates['high_risk_rate']}%", f"{summary['high_risk_cases']} case"),
+            ("反馈压力", f"{rates['feedback_pressure_rate']}%", f"{summary['unresolved_feedback']} open"),
+        ]
+    )
 
     st.markdown("#### 指标守门")
     monitoring_rows = dashboard.get("monitoring_rows", [])
@@ -1337,14 +1415,18 @@ def render_business_metric_system() -> None:
     metric_system = payload["data"]
     snapshot = metric_system["ops_snapshot"]
 
-    cols = st.columns(5)
-    cols[0].metric("Case 总量", snapshot["case_total"])
-    cols[1].metric("自动解决率", f"{snapshot['auto_resolution_rate']}%")
-    cols[2].metric("转人工率", f"{snapshot['handoff_rate']}%")
-    cols[3].metric("知识覆盖率", f"{snapshot['knowledge_support_rate']}%")
-    cols[4].metric("反馈压力", f"{snapshot['feedback_pressure_rate']}%")
+    st.caption(f"数据模式: {metric_system.get('data_mode', 'unknown')} / {metric_system.get('sample_note', '')}")
+    render_metric_cards(
+        [
+            ("投诉订单比", f"{snapshot['complaint_order_rate']}%", "整体风险盘面"),
+            ("舆情投诉比", f"{snapshot['public_opinion_complaint_rate']}%", "高风险投诉结构"),
+            ("一线转移率", f"{snapshot['first_line_transfer_rate']}%", "前处理消化能力"),
+            ("达成一致率", f"{snapshot['agreement_rate']}%", "结果闭环质量"),
+            ("好评率", f"{snapshot['good_review_rate']}%", "客户反馈结果"),
+        ]
+    )
 
-    st.markdown("#### 六层指标地图")
+    st.markdown("#### 五层指标地图")
     layer_cards = []
     for layer in metric_system["layers"]:
         metrics = " / ".join(layer["metrics"])
@@ -1352,9 +1434,12 @@ def render_business_metric_system() -> None:
             f"""
             <div class="ops-card">
                 <div class="case-id">{layer["name"]}</div>
+                <p class="subtle"><strong>指标分类：</strong>{layer["category"]}</p>
                 <h4>{layer["question"]}</h4>
                 <p class="subtle"><strong>核心指标：</strong>{metrics}</p>
+                <p class="subtle"><strong>数据来源：</strong>{layer["data_source"]}</p>
                 <p class="subtle"><strong>业务用途：</strong>{layer["business_use"]}</p>
+                <p class="subtle"><strong>决策动作：</strong>{layer["decision_use"]}</p>
             </div>
             """
         )
