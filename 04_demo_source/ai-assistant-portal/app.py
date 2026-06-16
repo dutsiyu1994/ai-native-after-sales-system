@@ -773,13 +773,11 @@ def render_metric_cards(items: list[tuple[str, object, object | None]]) -> None:
     for label, value, delta in items:
         delta_html = f'<div class="metric-delta">{escape(str(delta))}</div>' if delta else ""
         cards.append(
-            f"""
-            <div class="metric-card">
-                <div class="metric-label">{escape(str(label))}</div>
-                <div class="metric-value">{escape(str(value))}</div>
-                {delta_html}
-            </div>
-            """
+            '<div class="metric-card">'
+            f'<div class="metric-label">{escape(str(label))}</div>'
+            f'<div class="metric-value">{escape(str(value))}</div>'
+            f"{delta_html}"
+            "</div>"
         )
     st.markdown(f'<div class="metric-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
 
@@ -934,6 +932,10 @@ def _count_or_len(value) -> int:
     if isinstance(value, (list, tuple, dict, set)):
         return len(value)
     return 1
+
+
+def _snapshot_value(snapshot: dict, key: str, fallback: object = "待接入") -> object:
+    return snapshot.get(key, fallback) if isinstance(snapshot, dict) else fallback
 
 
 def render_case_detail_panel(selected: dict, data_source: str) -> None:
@@ -1412,41 +1414,45 @@ def render_business_metric_system() -> None:
         fallback_cases=BACKEND_CASES,
         fallback_events=FEEDBACK_EVENTS,
     )
-    metric_system = payload["data"]
-    snapshot = metric_system["ops_snapshot"]
+    metric_system = payload.get("data") or {}
+    snapshot = metric_system.get("ops_snapshot") or {}
 
-    st.caption(f"数据模式: {metric_system.get('data_mode', 'unknown')} / {metric_system.get('sample_note', '')}")
+    st.caption(
+        f"数据模式: {metric_system.get('data_mode', 'demo_sample')} / "
+        f"{metric_system.get('sample_note', '当前为模拟业务指标，用于展示监控和决策逻辑；运营指标页仍保留原系统使用指标。')}"
+    )
     render_metric_cards(
         [
-            ("投诉订单比", f"{snapshot['complaint_order_rate']}%", "整体风险盘面"),
-            ("舆情投诉比", f"{snapshot['public_opinion_complaint_rate']}%", "高风险投诉结构"),
-            ("一线转移率", f"{snapshot['first_line_transfer_rate']}%", "前处理消化能力"),
-            ("达成一致率", f"{snapshot['agreement_rate']}%", "结果闭环质量"),
-            ("好评率", f"{snapshot['good_review_rate']}%", "客户反馈结果"),
+            ("投诉订单比", f"{_snapshot_value(snapshot, 'complaint_order_rate')}%", "整体风险盘面"),
+            ("舆情投诉比", f"{_snapshot_value(snapshot, 'public_opinion_complaint_rate')}%", "高风险投诉结构"),
+            ("一线转移率", f"{_snapshot_value(snapshot, 'first_line_transfer_rate')}%", "前处理消化能力"),
+            ("达成一致率", f"{_snapshot_value(snapshot, 'agreement_rate')}%", "结果闭环质量"),
+            ("好评率", f"{_snapshot_value(snapshot, 'good_review_rate')}%", "客户反馈结果"),
         ]
     )
 
     st.markdown("#### 五层指标地图")
     layer_cards = []
-    for layer in metric_system["layers"]:
-        metrics = " / ".join(layer["metrics"])
+    for layer in metric_system.get("layers", []):
+        metrics = " / ".join(layer.get("metrics", []))
         layer_cards.append(
-            f"""
-            <div class="ops-card">
-                <div class="case-id">{layer["name"]}</div>
-                <p class="subtle"><strong>指标分类：</strong>{layer["category"]}</p>
-                <h4>{layer["question"]}</h4>
-                <p class="subtle"><strong>核心指标：</strong>{metrics}</p>
-                <p class="subtle"><strong>数据来源：</strong>{layer["data_source"]}</p>
-                <p class="subtle"><strong>业务用途：</strong>{layer["business_use"]}</p>
-                <p class="subtle"><strong>决策动作：</strong>{layer["decision_use"]}</p>
-            </div>
-            """
+            '<div class="ops-card">'
+            f'<div class="case-id">{escape(str(layer.get("name", "未命名层")))}</div>'
+            f'<p class="subtle"><strong>指标分类：</strong>{escape(str(layer.get("category", "业务监控")))}</p>'
+            f'<h4>{escape(str(layer.get("question", "当前层级用于监控售后服务链路。")))}</h4>'
+            f'<p class="subtle"><strong>核心指标：</strong>{escape(metrics)}</p>'
+            f'<p class="subtle"><strong>数据来源：</strong>{escape(str(layer.get("data_source", "Case 中台 + 业务系统")))}</p>'
+            f'<p class="subtle"><strong>业务用途：</strong>{escape(str(layer.get("business_use", "用于定位链路问题并触发运营动作。")))}</p>'
+            f'<p class="subtle"><strong>决策动作：</strong>{escape(str(layer.get("decision_use", "进入 owner 跟进和周报复盘。")))}</p>'
+            "</div>"
         )
-    st.markdown(f'<div class="ops-grid">{"".join(layer_cards)}</div>', unsafe_allow_html=True)
+    if layer_cards:
+        st.markdown(f'<div class="ops-grid">{"".join(layer_cards)}</div>', unsafe_allow_html=True)
+    else:
+        st.info("暂无指标地图数据。")
 
     st.markdown("#### 指标口径与动作看板")
-    metric_rows = pd.DataFrame(metric_system["metric_rows"])
+    metric_rows = pd.DataFrame(metric_system.get("metric_rows", []))
     st.dataframe(metric_rows, use_container_width=True, hide_index=True)
 
     st.markdown("#### 异常诊断队列")
@@ -1475,20 +1481,23 @@ def render_business_metric_system() -> None:
     left, right = st.columns([1.2, 0.8])
     with left:
         st.markdown("#### 分层指标状态")
-        status_frame = (
-            metric_rows.groupby(["layer", "status"])
-            .size()
-            .reset_index(name="count")
-            .pivot(index="layer", columns="status", values="count")
-            .fillna(0)
-        )
-        st.bar_chart(status_frame)
+        if {"layer", "status"}.issubset(metric_rows.columns) and not metric_rows.empty:
+            status_frame = (
+                metric_rows.groupby(["layer", "status"])
+                .size()
+                .reset_index(name="count")
+                .pivot(index="layer", columns="status", values="count")
+                .fillna(0)
+            )
+            st.bar_chart(status_frame)
+        else:
+            st.info("暂无可绘制的分层状态数据。")
     with right:
         st.markdown("#### 管理节奏")
-        st.dataframe(pd.DataFrame(metric_system["cadence"]), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(metric_system.get("cadence", [])), use_container_width=True, hide_index=True)
 
     st.markdown("#### 指标治理规则")
-    for item in metric_system["governance"]:
+    for item in metric_system.get("governance", []):
         st.markdown(
             f"""
             <div class="band">
@@ -1503,21 +1512,48 @@ def render_launch_logic() -> None:
     st.subheader("上线逻辑与边界")
     st.markdown(
         """
-        | 层级 | 当前展示方式 | 真实生产要补齐 |
+        | 模块 | 1.0 上线要求 | 当前原型覆盖 | 后续补齐 |
         | --- | --- | --- |
-        | 客户入口 | 对客机器人 demo | 真实渠道接入、身份鉴权、会话持久化 |
-        | AI 服务编排层 | 对客机器人、RAG、分类、VOC demo | 统一 Agent 决策服务、模型日志、置信度和安全策略 |
-        | Case 中台 | 门户用样例 case 呈现 | 数据库、状态机、字段模型、人工接管记录 |
-        | 运营后台 | RAG、摘要、质检、VOC demo | 工单队列、权限、审计、指标看板、知识发布流程 |
-        | 2.0 优化层 | VOC 和质检展示方向 | 聚类、归因、优化建议、审批、灰度和效果追踪 |
+        | 客户入口 | 接入 Web Chat / 企业微信 / 客服系统，保留身份、会话和订单上下文 | 对客机器人承接自然语言、多轮补槽、风险判断 | 真实渠道鉴权、会话持久化、用户身份映射 |
+        | AI 服务编排 | 意图识别、RAG、风险判断、标准答复和转人工决策统一编排 | 对客机器人 + RAG + 分类 + VOC 模块已拆出关键能力 | 统一服务 API、模型日志、置信度、AB 灰度和安全策略 |
+        | Case 中台 | case_id 贯穿客户输入、AI 判断、知识依据、人工接管和处理结果 | 门户已有 Case 列表、详情、状态流、反馈事件和 SQLite 接口 | 正式数据库、状态机权限、审计日志、外部工单同步 |
+        | 运营后台 | 人工接管、质检复核、知识库维护、指标监控和异常处理 | 已有运营后台、运营指标、数据指标体系和人工回填样例 | 角色权限、SLA 队列、任务分派、知识发布审批 |
+        | 2.0 优化层 | 从 badcase、舆情、低质检和知识缺口中自动发现问题 | VOC、质检、反馈事件和异常诊断已形成优化入口 | 聚类归因、优化建议、灰度验证、效果追踪和自动复盘 |
         """
     )
+    boundary_rows = pd.DataFrame(
+        [
+            {
+                "边界类型": "AI 可自主处理",
+                "适用场景": "低风险、规则清晰、知识依据充分、无赔付承诺的标准咨询",
+                "系统动作": "生成标准答复，保留 knowledge_refs 和 decision_trace",
+            },
+            {
+                "边界类型": "AI 需追问补槽",
+                "适用场景": "订单号、物流节点、退款原因、联系方式等关键字段缺失",
+                "系统动作": "继续多轮补槽，不提前承诺处理结果",
+            },
+            {
+                "边界类型": "必须人工接管",
+                "适用场景": "监管投诉、舆情扩散、赔付争议、政策冲突、用户强烈不满",
+                "系统动作": "next_action=human_handoff，生成 handoff_summary",
+            },
+            {
+                "边界类型": "进入优化闭环",
+                "适用场景": "知识未命中、人工改写、质检低分、重复催办、投诉重开",
+                "系统动作": "生成反馈事件，进入知识/SOP/Prompt/规则优化队列",
+            },
+        ]
+    )
+    st.markdown("#### 人机分工边界")
+    st.dataframe(boundary_rows, use_container_width=True, hide_index=True)
     st.markdown(
         """
         <div class="band">
-            <strong>表达边界：</strong>
-            当前系统是生产逻辑原型，不表述为已经接入真实客户系统。
-            可强调已经具备完整上线逻辑理解：输入端、编排层、case 中台、运营后台和 2.0 优化闭环。
+            <strong>生产表达边界：</strong>
+            当前系统可定位为“可落地的生产逻辑原型”：已经覆盖客户输入、AI 判断、Case 中台、人工接管、
+            运营指标和反馈优化闭环；不表述为已经接入真实企业客户系统或真实订单数据。
+            数据指标体系中的业务数据为 demo sample，用于展示监控和决策逻辑。
         </div>
         """,
         unsafe_allow_html=True,
