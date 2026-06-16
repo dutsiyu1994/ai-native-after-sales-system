@@ -243,9 +243,15 @@ def get_or_create_case_id() -> str:
     return st.session_state["current_case_id"]
 
 
-def snapshot_case_state(slots: dict, risks: list[str], hits: list[dict], next_action: str) -> dict:
+def snapshot_case_state(
+    slots: dict,
+    risks: list[str],
+    hits: list[dict],
+    next_action: str,
+    operating_fields: dict | None = None,
+) -> dict:
     """每轮结束后拍快照，用于状态回放."""
-    return {
+    snap = {
         "turn": len(st.session_state.get("state_history", [])) + 1,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "case_id": st.session_state.get("current_case_id", ""),
@@ -255,6 +261,17 @@ def snapshot_case_state(slots: dict, risks: list[str], hits: list[dict], next_ac
         "knowledge_refs": [h.get("chunk_id", "") for h in hits],
         "next_action": next_action,
     }
+    if operating_fields:
+        snap.update(
+            {
+                "status": operating_fields.get("status", ""),
+                "priority": operating_fields.get("priority", ""),
+                "risk_level": operating_fields.get("risk_level", ""),
+                "evidence_status": operating_fields.get("evidence_status", ""),
+                "decision_reason": operating_fields.get("decision_reason", ""),
+            }
+        )
+    return snap
 
 
 def determine_next_action(slots: dict, risks: list[str], hits: list[dict]) -> str:
@@ -270,6 +287,60 @@ def determine_next_action(slots: dict, risks: list[str], hits: list[dict]) -> st
     if hits and has_sufficient_evidence(hits):
         return "standard_answer"
     return "human_handoff"
+
+
+def build_operating_fields(slots: dict, risks: list[str], hits: list[dict], next_action: str) -> dict:
+    """补齐生产化后台字段：状态、优先级、风险等级、证据状态和决策原因."""
+    missing = [k for k, v in slots.items() if v.get("status") == "missing"]
+    sufficient = bool(hits and has_sufficient_evidence(hits))
+    high_risk = any(t in risks for t in ("regulatory_or_public_risk", "compensation_or_refund", "high_emotion"))
+
+    if not hits:
+        evidence_status = "missing"
+    elif sufficient:
+        evidence_status = "sufficient"
+    else:
+        evidence_status = "partial"
+
+    if high_risk:
+        risk_level = "high"
+        priority = "P0" if "regulatory_or_public_risk" in risks else "P1"
+    elif risks:
+        risk_level = "medium"
+        priority = "P1"
+    elif missing:
+        risk_level = "low"
+        priority = "P2"
+    else:
+        risk_level = "low"
+        priority = "P3"
+
+    status_map = {
+        "continue_inquiry": "collecting_info",
+        "standard_answer": "ai_answered",
+        "human_handoff": "handoff_pending",
+        "escalate": "handoff_pending",
+    }
+    status = status_map.get(next_action, "collecting_info")
+
+    if high_risk:
+        decision_reason = "命中高风险标签，需人工确认赔付、监管或争议边界。"
+    elif missing:
+        decision_reason = f"仍缺少必要字段：{'、'.join(missing)}。"
+    elif evidence_status == "sufficient" and next_action == "standard_answer":
+        decision_reason = "知识依据充足且风险可控，可输出标准答复。"
+    elif evidence_status != "sufficient":
+        decision_reason = "知识依据不足，需补充知识或人工确认。"
+    else:
+        decision_reason = "规则判断进入人工兜底。"
+
+    return {
+        "status": status,
+        "priority": priority,
+        "risk_level": risk_level,
+        "evidence_status": evidence_status,
+        "decision_reason": decision_reason,
+    }
 
 
 def build_handoff_summary(user_msg: str, slots: dict, risks: list[str], hits: list[dict]) -> str:
@@ -396,6 +467,7 @@ def _process_user_input(user_msg: str, provider_key: str):
 
     # Task 5: 决策
     next_action = determine_next_action(slots, risks, hits)
+    operating_fields = build_operating_fields(slots, risks, hits, next_action)
 
     # 高风险缺字段也生成 handoff_summary (Task 5 Step 3)
     handoff_summary = ""
@@ -435,7 +507,7 @@ def _process_user_input(user_msg: str, provider_key: str):
     conv.append({"role": "agent", "content": agent_msg})
 
     # Task 4: 快照状态
-    snap = snapshot_case_state(slots, risks, hits, next_action)
+    snap = snapshot_case_state(slots, risks, hits, next_action, operating_fields)
     st.session_state["state_history"].append(snap)
 
     # 构建 case_context (Task 2: 外界传入 case_id)
@@ -451,6 +523,16 @@ def _process_user_input(user_msg: str, provider_key: str):
         case_id=case_id,
         state_history=st.session_state["state_history"],
     )
+    case_ctx.update(operating_fields)
+    case_ctx["decision_trace"] = {
+        "intent": case_ctx.get("customer_intent", ""),
+        "provided_slots": [k for k, v in slots.items() if v.get("status") == "provided"],
+        "missing_slots": [k for k, v in slots.items() if v.get("status") == "missing"],
+        "risk_tags": risks,
+        "knowledge_ref_count": len(hits),
+        "next_action": next_action,
+        "decision_reason": operating_fields["decision_reason"],
+    }
 
     st.session_state["case_context"] = case_ctx
 
@@ -637,8 +719,18 @@ def render_right_panel():
     if st.session_state.get("case_started_at"):
         st.caption(f"创建于 {st.session_state['case_started_at']}")
 
+    status_cols = st.columns(4)
+    status_cols[0].metric("Case 状态", ctx.get("status", "—"))
+    status_cols[1].metric("优先级", ctx.get("priority", "—"))
+    status_cols[2].metric("风险等级", ctx.get("risk_level", "—"))
+    status_cols[3].metric("证据状态", ctx.get("evidence_status", "—"))
+
     st.markdown("**🎯 意图**")
     st.markdown(f"`{ctx['customer_intent']}`")
+
+    if ctx.get("decision_reason"):
+        st.markdown("**🧭 决策原因**")
+        st.info(ctx["decision_reason"])
 
     st.markdown("**📝 字段收集**")
     for name, info in ctx["required_slots"].items():
@@ -678,6 +770,10 @@ def render_right_panel():
         with st.container(border=True):
             st.markdown(ctx["handoff_summary"])
 
+    if ctx.get("decision_trace"):
+        with st.expander("🧠 AI 判断链", expanded=False):
+            st.json(ctx["decision_trace"])
+
     # Task 4: 状态变化记录
     history = st.session_state.get("state_history", [])
     if history:
@@ -702,6 +798,14 @@ def render_bottom():
     cols[3].metric("知识命中率", f"{m['knowledge_hit_count'] / knowledge_total * 100:.0f}%")
     cols[4].metric("人工接管时长", "≈ 0s")
     cols[5].metric("重复描述", m["repeat_count"])
+
+    if ctx:
+        st.caption(
+            f"生产字段：status={ctx.get('status', '—')} | "
+            f"priority={ctx.get('priority', '—')} | "
+            f"risk_level={ctx.get('risk_level', '—')} | "
+            f"evidence_status={ctx.get('evidence_status', '—')}"
+        )
 
     if ctx:
         with st.expander("🔍 case_context JSON"):

@@ -183,6 +183,93 @@ SAMPLE_CASES = [
 ]
 
 
+BACKEND_CASES = [
+    {
+        "case_id": "CASE-AIR-001",
+        "source": "对客沟通机器人",
+        "status": "handoff_pending",
+        "priority": "P0",
+        "risk_level": "high",
+        "next_action": "human_handoff",
+        "evidence_status": "partial",
+        "owner": "人工接管队列",
+        "summary": "航班延误退票赔付，并提到民航局投诉；需人工确认政策边界和回复时限。",
+    },
+    {
+        "case_id": "CASE-RAG-003",
+        "source": "RAG 知识库",
+        "status": "ai_answered",
+        "priority": "P3",
+        "risk_level": "low",
+        "next_action": "standard_answer",
+        "evidence_status": "sufficient",
+        "owner": "AI 自动答复",
+        "summary": "自愿退票手续费咨询，知识命中且风险可控，可给标准解释。",
+    },
+    {
+        "case_id": "CASE-QA-006",
+        "source": "客服对话质检",
+        "status": "review_required",
+        "priority": "P1",
+        "risk_level": "medium",
+        "next_action": "quality_review",
+        "evidence_status": "sufficient",
+        "owner": "质检复核",
+        "summary": "客服回复中存在承诺边界不清，需复核并回流话术规则。",
+    },
+]
+
+
+FEEDBACK_EVENTS = [
+    {
+        "event_type": "handoff_reason",
+        "case_id": "CASE-AIR-001",
+        "source": "customer_agent",
+        "priority": "P0",
+        "root_cause": "policy_unclear",
+        "suggested_action": "补充监管投诉和赔付争议 SOP，明确必须人工确认的边界。",
+    },
+    {
+        "event_type": "knowledge_miss",
+        "case_id": "CASE-LOG-002",
+        "source": "rag",
+        "priority": "P1",
+        "root_cause": "knowledge_gap",
+        "suggested_action": "新增物流长时间未更新的追问字段和处理口径。",
+    },
+    {
+        "event_type": "low_quality_score",
+        "case_id": "CASE-QA-006",
+        "source": "quality_evaluator",
+        "priority": "P1",
+        "root_cause": "script_issue",
+        "suggested_action": "把客服承诺词过滤规则同步到 AI 回复和人工话术审核。",
+    },
+]
+
+
+INSIGHT_TASKS = [
+    {
+        "title": "监管投诉场景转人工规则加严",
+        "input": "handoff_reason + regulatory risk",
+        "action": "调整风险规则",
+        "expected": "提升高风险正确转人工率，降低越权答复风险。",
+    },
+    {
+        "title": "物流未更新知识缺口补齐",
+        "input": "knowledge_miss 聚类",
+        "action": "新增知识片段和追问字段",
+        "expected": "减少重复追问和无依据答复。",
+    },
+    {
+        "title": "承诺边界话术统一",
+        "input": "low_quality_score + badcase",
+        "action": "优化 Prompt / SOP / 质检规则",
+        "expected": "降低退款、赔付、监管结论的误承诺率。",
+    },
+]
+
+
 def inject_css() -> None:
     st.markdown(
         """
@@ -373,6 +460,56 @@ def inject_css() -> None:
             grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1.2fr) minmax(220px, 0.55fr);
             gap: 16px;
         }
+        .ops-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin: 12px 0 16px;
+        }
+        .ops-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.94);
+            padding: 15px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+            min-height: 150px;
+        }
+        .ops-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 15px;
+            color: var(--ink);
+        }
+        .ops-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 8px 0;
+        }
+        .status-chip {
+            display: inline-flex;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: 760;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            background: #f8fafc;
+        }
+        .chip-p0 {
+            border-color: #fecaca;
+            color: #b42318;
+            background: #fef2f2;
+        }
+        .chip-p1 {
+            border-color: #fed7aa;
+            color: #c2410c;
+            background: #fff7ed;
+        }
+        .chip-ok {
+            border-color: #bbf7d0;
+            color: #047857;
+            background: #ecfdf5;
+        }
         .case-id {
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
             font-size: 13px;
@@ -395,6 +532,9 @@ def inject_css() -> None:
             .hero-grid,
             .layer-card,
             .case-row {
+                grid-template-columns: 1fr;
+            }
+            .ops-grid {
                 grid-template-columns: 1fr;
             }
             .hero h1 {
@@ -526,6 +666,90 @@ def render_case_flow() -> None:
         )
 
 
+def _priority_class(priority: str, evidence_status: str = "") -> str:
+    if priority == "P0":
+        return "chip-p0"
+    if priority == "P1":
+        return "chip-p1"
+    if evidence_status == "sufficient":
+        return "chip-ok"
+    return ""
+
+
+def render_operations_backend() -> None:
+    st.subheader("运营后台 / Case 中台")
+    st.caption("用统一 case_id 串联客户输入、AI 判断、知识依据、人工接管、质检和 2.0 优化任务。")
+
+    total = len(BACKEND_CASES)
+    handoff = sum(1 for c in BACKEND_CASES if c["next_action"] == "human_handoff")
+    high = sum(1 for c in BACKEND_CASES if c["risk_level"] == "high")
+    unresolved = sum(1 for e in FEEDBACK_EVENTS if e["priority"] in ("P0", "P1"))
+    cols = st.columns(4)
+    cols[0].metric("Case 队列", total)
+    cols[1].metric("待人工接管", handoff)
+    cols[2].metric("高风险 Case", high)
+    cols[3].metric("待优化事件", unresolved)
+
+    st.markdown('<div class="section-label">Case 队列</div>', unsafe_allow_html=True)
+    case_cards = []
+    for case in BACKEND_CASES:
+        priority_class = _priority_class(case["priority"], case["evidence_status"])
+        case_cards.append(
+            f"""
+            <div class="ops-card">
+                <div class="case-id">{case["case_id"]}</div>
+                <h4>{case["summary"]}</h4>
+                <div class="ops-meta">
+                    <span class="status-chip {priority_class}">{case["priority"]}</span>
+                    <span class="status-chip">{case["status"]}</span>
+                    <span class="status-chip">{case["risk_level"]}</span>
+                    <span class="status-chip">{case["evidence_status"]}</span>
+                </div>
+                <p class="subtle"><strong>来源：</strong>{case["source"]}</p>
+                <p class="subtle"><strong>动作：</strong>{case["next_action"]}</p>
+                <p class="subtle"><strong>负责人：</strong>{case["owner"]}</p>
+            </div>
+            """
+        )
+    st.markdown(f'<div class="ops-grid">{"".join(case_cards)}</div>', unsafe_allow_html=True)
+
+    left, right = st.columns([1, 1])
+    with left:
+        st.markdown("#### 反馈事件队列")
+        for event in FEEDBACK_EVENTS:
+            priority_class = _priority_class(event["priority"])
+            st.markdown(
+                f"""
+                <div class="ops-card">
+                    <div class="ops-meta">
+                        <span class="status-chip {priority_class}">{event["priority"]}</span>
+                        <span class="status-chip">{event["event_type"]}</span>
+                        <span class="status-chip">{event["source"]}</span>
+                    </div>
+                    <div class="case-id">{event["case_id"]}</div>
+                    <p class="subtle"><strong>根因：</strong>{event["root_cause"]}</p>
+                    <p class="subtle"><strong>建议：</strong>{event["suggested_action"]}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    with right:
+        st.markdown("#### 2.0 优化任务")
+        for task in INSIGHT_TASKS:
+            st.markdown(
+                f"""
+                <div class="ops-card">
+                    <h4>{task["title"]}</h4>
+                    <p class="subtle"><strong>输入信号：</strong>{task["input"]}</p>
+                    <p class="subtle"><strong>建议动作：</strong>{task["action"]}</p>
+                    <p class="subtle"><strong>预期收益：</strong>{task["expected"]}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
 def render_launch_logic() -> None:
     st.subheader("上线逻辑与边界")
     st.markdown(
@@ -583,8 +807,8 @@ def main() -> None:
     render_header()
     render_kpis()
 
-    tab_arch, tab_demos, tab_cases, tab_launch = st.tabs(
-        ["系统架构", "demo 入口", "case 流转", "上线逻辑"]
+    tab_arch, tab_demos, tab_cases, tab_ops, tab_launch = st.tabs(
+        ["系统架构", "demo 入口", "case 流转", "运营后台", "上线逻辑"]
     )
 
     with tab_arch:
@@ -596,6 +820,9 @@ def main() -> None:
 
     with tab_cases:
         render_case_flow()
+
+    with tab_ops:
+        render_operations_backend()
 
     with tab_launch:
         render_launch_logic()
