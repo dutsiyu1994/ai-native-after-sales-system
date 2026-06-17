@@ -215,7 +215,7 @@ def llm_classify(text, model_key, client):
     "is_compound": false,
     "compound_types": [],
     "keywords_extracted": ["关键词"],
-    "action_recommendation": "针对性的处理建议和沟通话术（80字内）"
+    "action_recommendation": "针对性的处理建议和沟通口径（80字内）"
 }}
 
 注意：
@@ -440,9 +440,9 @@ def keyword_suggestion(category, sentiment, priority):
     if category in suggestion_map:
         suggestions.append(suggestion_map[category])
     if sentiment == "愤怒":
-        suggestions.append("💬 话术：先致歉共情，再说明解决方案")
+        suggestions.append("💬 口径：先致歉共情，再说明解决方案")
     elif sentiment == "焦虑":
-        suggestions.append("💬 话术：先确认进度，给出明确时间节点")
+        suggestions.append("💬 口径：先确认进度，给出明确时间节点")
     return "；".join(suggestions)
 
 
@@ -649,7 +649,7 @@ VERSION_HISTORY = [
         "changes": [
             "接入 DeepSeek V4 实现真正的 LLM 语义分类（替代占位符开关）",
             "新增双引擎并排对比模式：关键词规则 vs AI 语义",
-            "LLM 生成个性化处理建议（替代固定模板话术）",
+            "LLM 生成个性化处理建议（替代固定模板口径）",
             "新增 AI 语义聚类批量异常检测",
             "增强 Demo 数据至 80 条，新增纸尿裤质量风波异常事件",
             "新增复合型客诉识别（一单多维度）",
@@ -862,10 +862,10 @@ def show_welcome():
     | 分类方式 | 关键词硬匹配，5个预设类别 | 语义理解，支持复合分类 |
     | 情绪识别 | 关键词触发 | 上下文语义判断 |
     | 优先级 | 关键词+金额规则 | 综合语义+上下文评估 |
-    | 处理建议 | 模板化固定话术 | 针对原文本的个性化建议 |
+    | 处理建议 | 模板化固定口径 | 针对原文本的个性化建议 |
     | 异常检测 | 关键词频率聚类 | 语义级事件聚类 |
 
-    #### 🚀 面试演示路径
+    #### 🚀 系统展示路径
 
     1. 直接点击侧边栏 **加载 80 条模拟客诉数据**。
     2. 先用默认规则引擎展示稳定结果。
@@ -1242,7 +1242,7 @@ def show_anomaly(df, model_key, client):
             with st.expander(f"{a['预警等级']} {a['异常主题']} — 影响 {a['影响单量']} 单", expanded=False):
                 st.markdown(f"**关联关键词**: {a['关联关键词']}")
                 st.markdown(f"**影响面**: {a['影响单量']} 单")
-                st.info("1. 定位涉事商品/商家/物流商\n2. 核实影响面\n3. 制定批量处理策略\n4. 输出话术通知一线")
+                st.info("1. 定位涉事商品/商家/物流商\n2. 核实影响面\n3. 制定批量处理策略\n4. 输出处理口径通知一线")
     else:
         st.success("未检测到关键词级批量异常")
 

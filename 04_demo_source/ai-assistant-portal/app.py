@@ -262,7 +262,7 @@ BACKEND_CASES = [
         "feedback_count": 1,
         "sla": "8h",
         "owner": "质检复核",
-        "summary": "客服回复中存在承诺边界不清，需复核并回流话术规则。",
+        "summary": "客服回复中存在承诺边界不清，需复核并回流回复边界规则。",
     },
     {
         "case_id": "CASE-LOG-002",
@@ -341,7 +341,7 @@ FEEDBACK_EVENTS = [
         "source": "quality_evaluator",
         "priority": "P1",
         "root_cause": "script_issue",
-        "suggested_action": "把客服承诺词过滤规则同步到 AI 回复和人工话术审核。",
+        "suggested_action": "把客服承诺词过滤规则同步到 AI 回复和人工审核口径。",
     },
     {
         "event_type": "human_modification",
@@ -349,7 +349,7 @@ FEEDBACK_EVENTS = [
         "source": "human_handoff",
         "priority": "P0",
         "root_cause": "policy_unclear",
-        "suggested_action": "人工确认赔付边界后，回流监管投诉 SOP 和对客话术边界。",
+        "suggested_action": "人工确认赔付边界后，回流监管投诉 SOP 和对客回复边界。",
     },
 ]
 
@@ -367,9 +367,9 @@ HUMAN_HANDOFF_RECORDS = [
         "case_id": "CASE-QA-006",
         "handler": "质检专员B",
         "outcome": "已解决",
-        "ai_review": "话术需优化",
+        "ai_review": "回复边界需优化",
         "root_cause": "script_issue",
-        "note": "人工修改了承诺边界，建议同步到 AI 回复过滤和客服标准话术。",
+        "note": "人工修改了承诺边界，建议同步到 AI 回复过滤和客服标准回复边界。",
     },
 ]
 
@@ -388,7 +388,7 @@ INSIGHT_TASKS = [
         "expected": "减少重复追问和无依据答复。",
     },
     {
-        "title": "承诺边界话术统一",
+        "title": "承诺边界口径统一",
         "input": "low_quality_score + badcase",
         "action": "优化 Prompt / SOP / 质检规则",
         "expected": "降低退款、赔付、监管结论的误承诺率。",
@@ -854,7 +854,7 @@ def render_home_positioning() -> None:
         ),
         (
             "演示顺序",
-            "先讲业务成本和人机边界，再走客户输入、AI 判断、转人工、质检、指标监控和优化任务，避免直接点功能。",
+            "先呈现业务成本和人机边界，再走客户输入、AI 判断、转人工、质检、指标监控和优化任务，避免直接点功能。",
         ),
         (
             "生产边界",
@@ -1352,10 +1352,10 @@ def render_operations_backend() -> None:
     with right:
         st.markdown("#### 2.0 优化任务")
         mapping_cards = [
-            ("knowledge_miss", "知识库补充", "补齐政策、SOP、FAQ 或标准话术，降低无依据回答和重复转人工。"),
+            ("knowledge_miss", "知识库补充", "补齐政策、SOP、FAQ 或标准回复口径，降低无依据回答和重复转人工。"),
             ("handoff_reason", "SOP / 追问策略", "拆分必要转人工和可避免转人工，优化入口补槽和人工接管边界。"),
             ("human_modification", "Prompt / 模板校准", "定位人工修改 AI 输出的原因，回流到摘要、分类、回复草稿和质检模板。"),
-            ("low_quality_score", "质检规则 / 培训", "将低分原因转成质检规则、复训动作和高风险话术提醒。"),
+            ("low_quality_score", "质检规则 / 培训", "将低分原因转成质检规则、复训动作和高风险回复边界提醒。"),
         ]
         mapping_html = "".join(
             '<div class="ops-card">'
@@ -1696,7 +1696,7 @@ def render_demo_mode() -> None:
 
     st.markdown("#### 演示步骤")
     steps = [
-        {"step": "1", "page": "首页", "action": "先讲不是 6 个工具拼盘，而是按生产链路组织的 AI native 售后服务系统。", "proof": "首页定位卡 + 5 个核心对象"},
+        {"step": "1", "page": "首页", "action": "先呈现它不是 6 个工具拼盘，而是按生产链路组织的 AI native 售后服务系统。", "proof": "首页定位卡 + 5 个核心对象"},
         {"step": "2", "page": "对客机器人", "action": "复制推荐输入样例，生成 case、风险标签、知识引用和转人工摘要。", "proof": "case_id / risk_tags / next_action=human_handoff"},
         {"step": "3", "page": "运营后台", "action": "回门户查看 Case 队列、人工接管回填、反馈事件和 2.0 优化任务。", "proof": "Case 中台 4 步闭环 + 反馈到优化任务映射"},
         {"step": "4", "page": "运营指标", "action": "解释自动解决率、转人工率、知识覆盖率、高风险占比和反馈压力。", "proof": "证明系统是否真的被使用"},
@@ -1705,18 +1705,18 @@ def render_demo_mode() -> None:
     ]
     st.dataframe(pd.DataFrame(steps), use_container_width=True, hide_index=True)
 
-    st.markdown("#### 6 个 demo 统一讲解口径")
+    st.markdown("#### 6 个 demo 模块联动口径")
     demo_rows = [
         {"demo": "对客机器人", "统一样例中的角色": "客户入口，创建 case 并判断是否转人工", "重点字段": "case_id / risk_tags / handoff_summary"},
         {"demo": "客诉分类", "统一样例中的角色": "把文本转成问题类型、情绪和优先级", "重点字段": "category / sentiment / priority"},
         {"demo": "VOC 风险", "统一样例中的角色": "识别监管投诉、舆情和批量风险信号", "重点字段": "risk_level / trend_signal / recommended_action"},
         {"demo": "RAG 知识库", "统一样例中的角色": "提供政策依据并标记是否需要人工确认", "重点字段": "knowledge_refs / evidence_status"},
         {"demo": "智能总结", "统一样例中的角色": "生成转人工摘要和待跟进事项", "重点字段": "handoff_summary / missing_slots / pending_items"},
-        {"demo": "客服质检", "统一样例中的角色": "检查高风险转人工、承诺边界和服务话术", "重点字段": "quality_score / risk_flags / coaching_action"},
+        {"demo": "客服质检", "统一样例中的角色": "检查高风险转人工、承诺边界和服务回复质量", "重点字段": "quality_score / risk_flags / coaching_action"},
     ]
     st.dataframe(pd.DataFrame(demo_rows), use_container_width=True, hide_index=True)
 
-    st.markdown("#### 30 秒收口话术")
+    st.markdown("#### 系统闭环说明")
     st.info(
         "这套演示的重点不是展示单点 AI 功能，而是证明一条售后服务链路可以被 AI 重新组织："
         "客户输入生成统一 case，AI 负责识别、引用知识、摘要、质检和风险提示，人负责高风险确认和最终处理，"

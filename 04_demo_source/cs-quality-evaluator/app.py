@@ -320,7 +320,7 @@ VERSION_HISTORY = [
         "changes": [
             "新增对话高亮标注视图：绿色/红色/黄色标注关键词命中位置",
             "新增客服能力雷达对比：多客服同图叠加4维得分+优劣势表",
-            "新增AI Coaching要点：针对低分维度自动生成改进话术和培训建议",
+            "新增AI Coaching要点：针对低分维度自动生成改进建议和培训建议",
         ],
         "advantage": "不仅打分，更深入对话细节，做团队管理和AI辅助培训",
         "icon": "🎯",
@@ -329,7 +329,7 @@ VERSION_HISTORY = [
         "version": "v3.1", "date": "2026-05-20", "title": "多模型 AI 引擎架构",
         "changes": [
             "新增 4 引擎切换：Ollama Qwen2.5 / DeepSeek / Gemini / Groq",
-            "AI 评估新增：整体评价、语调分析、风险标注、亮点、改进话术",
+            "AI 评估新增：整体评价、语调分析、风险标注、亮点、改进建议",
             "新增规则配置面板（关键词/噪声词可编辑）",
             "新增版本演进、问题反馈入口",
             "规则引擎作为默认 baseline",
@@ -601,7 +601,7 @@ def show_single(conv_text, model_key, client):
                 for hl in llm_res["highlights"]:
                     st.success(f"✨ {hl}")
             if llm_res.get("improvement_rewrite"):
-                with st.expander("✏️ AI 改进话术示例"):
+                with st.expander("✏️ AI 改进建议示例"):
                     st.info(llm_res["improvement_rewrite"])
 
         # 对话高亮标注
@@ -862,7 +862,7 @@ def main():
     )
 
     if mode == "single":
-        st.info("面试演示建议：先加载一段示例对话，展示四维评分和可解释改进建议；批量模式可展示客服表现对比。")
+        st.info("系统展示路径：先加载一段示例对话，展示四维评分和可解释改进建议；批量模式可展示客服表现对比。")
         if st.button("🎲 填入高分示例对话", width='stretch'):
             st.session_state["single_conv"] = generate_samples()[0]["text"]
             st.rerun()

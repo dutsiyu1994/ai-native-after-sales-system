@@ -463,12 +463,12 @@ def _sanitize_response(text: str) -> str:
 
 
 def rule_based_response(user_msg: str, slots: dict, risks: list[str], hits: list[dict], next_action: str) -> str:
-    """规则兜底回复。对客话术与知识原文分离。"""
+    """规则兜底回复。对客回复与知识原文分离。"""
     miss = [k for k, v in slots.items() if v.get("status") == "missing"]
     is_high = any(t in risks for t in ("regulatory_or_public_risk", "compensation_or_refund", "high_emotion"))
 
     if next_action == "standard_answer":
-        # 知识充足 → 自然语言话术，不包含知识原文
+        # 知识充足 → 自然语言回复，不包含知识原文
         if hits:
             return _sanitize_response(
                 "根据系统知识库中的相关政策说明，您的情况适用相应处理标准。"
@@ -866,7 +866,7 @@ def render_human_handoff_form(ctx: dict) -> None:
         outcome = st.selectbox("处理结果", ["已解决", "继续跟进", "升级二线"])
         ai_review = st.selectbox(
             "AI 判断复核",
-            ["AI判断正确", "风险判断漏判", "风险判断误判", "知识依据不足", "话术需优化"],
+            ["AI判断正确", "风险判断漏判", "风险判断误判", "知识依据不足", "回复边界需优化"],
         )
         root_cause = st.selectbox(
             "问题根因",
@@ -901,7 +901,7 @@ def render_human_handoff_form(ctx: dict) -> None:
             "风险判断漏判": "补充高风险识别规则，降低漏转人工概率。",
             "风险判断误判": "调整风险阈值，减少低风险误转人工。",
             "知识依据不足": "补充或更新知识库片段，提升证据命中率。",
-            "话术需优化": "优化对客回复 Prompt 和人工话术边界。",
+            "回复边界需优化": "优化对客回复 Prompt 和人工回复边界。",
             "AI判断正确": "沉淀为可复用优秀 case，保留当前规则。",
         }
         ev = build_feedback_event(

@@ -217,7 +217,7 @@ VOC列表：
     "financial_risk": "预估财务风险等级（高/中/低）及简要说明",
     "early_warning_signals": "最早出现的信号描述（哪些VOC最先出现、关键词是什么）",
     "detection_confidence": 0.9,
-    "recommended_action": "针对性响应建议（3步以内，含具体话术方向）"
+    "recommended_action": "针对性响应建议（3步以内，含具体处理口径）"
 }}]
 
 要求：
@@ -901,7 +901,7 @@ def generate_risk_report(df, stat_clusters, time_anomalies, ai_clusters):
     lines.append("## 建议动作")
     lines.append("1. 定位涉事商家/商品/物流商，核实影响面")
     lines.append("2. 评估是否升级至值班主管")
-    lines.append("3. 制定批量处理策略，输出标准话术通知一线")
+    lines.append("3. 制定批量处理策略，输出标准处理口径通知一线")
     return "\n".join(lines)
 
 
@@ -991,7 +991,7 @@ def show_welcome():
     | 异常检测 | 滑动窗口时间序列 | 语义级事件聚类 |
     | 预警建议 | 固定 SOP 模板 | 针对性根因分析+响应方案 |
 
-    #### 🚀 面试演示路径
+    #### 🚀 系统展示路径
     1. 直接点击侧边栏 **加载 200 条模拟 VOC 数据**。
     2. 查看事件类型、统计聚类、时间序列和预警面板。
     3. 点击 **一键生成风险报告**，展示从识别到响应建议的闭环。
@@ -1240,7 +1240,7 @@ def show_voc_results(df, stat_clusters, time_anomalies, ai_clusters, model_key, 
                         st.caption("检测方法: TF-IDF + KMeans 聚类 + 滑动窗口时间序列")
                     with x2:
                         st.markdown("**标准响应流程**")
-                        st.info("1. 定位涉事商家/商品/物流商\n2. 评估升级必要性\n3. 制定批量处理策略\n4. 输出话术通知一线")
+                        st.info("1. 定位涉事商家/商品/物流商\n2. 评估升级必要性\n3. 制定批量处理策略\n4. 输出处理口径通知一线")
                     st.radio("处置状态", ["待处理", "处理中", "已闭环"], horizontal=True, key=f"kw_status_{i}")
         else:
             st.success("✅ 关键词规则未检测到预警")
