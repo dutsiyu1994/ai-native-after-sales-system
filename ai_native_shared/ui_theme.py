@@ -49,10 +49,17 @@ def inject_demo_ui() -> None:
         div[data-testid="stMetricLabel"] p {
             color: var(--as-muted);
             font-size: 13px;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
         }
         div[data-testid="stMetricValue"] {
             color: var(--as-ink);
             font-weight: 760;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            line-height: 1.16;
         }
         div[data-testid="stAlert"] {
             border-radius: 8px;
@@ -172,19 +179,17 @@ def render_demo_hero(
     if not status_html:
         status_html = '<div class="as-status-row"><span>模块状态</span><strong>Demo 可运行</strong></div>'
 
-    st.markdown(
-        f"""
-        <div class="as-hero">
-            <div class="as-hero-grid">
-                <div>
-                    <div class="as-eyebrow">AI native after-sales module</div>
-                    <h1>{escape(title)}</h1>
-                    <p>{escape(subtitle)}</p>
-                    <div style="margin-top:12px;">{chips_html}</div>
-                </div>
-                <div class="as-status">{status_html}</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    html = (
+        '<div class="as-hero">'
+        '<div class="as-hero-grid">'
+        "<div>"
+        '<div class="as-eyebrow">AI native after-sales module</div>'
+        f"<h1>{escape(title)}</h1>"
+        f"<p>{escape(subtitle)}</p>"
+        f'<div style="margin-top:12px;">{chips_html}</div>'
+        "</div>"
+        f'<div class="as-status">{status_html}</div>'
+        "</div>"
+        "</div>"
     )
+    st.markdown(html, unsafe_allow_html=True)
