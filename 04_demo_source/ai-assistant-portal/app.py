@@ -1357,6 +1357,21 @@ def render_operations_backend() -> None:
 
     with right:
         st.markdown("#### 2.0 优化任务")
+        mapping_cards = [
+            ("knowledge_miss", "知识库补充", "补齐政策、SOP、FAQ 或标准话术，降低无依据回答和重复转人工。"),
+            ("handoff_reason", "SOP / 追问策略", "拆分必要转人工和可避免转人工，优化入口补槽和人工接管边界。"),
+            ("human_modification", "Prompt / 模板校准", "定位人工修改 AI 输出的原因，回流到摘要、分类、回复草稿和质检模板。"),
+            ("low_quality_score", "质检规则 / 培训", "将低分原因转成质检规则、复训动作和高风险话术提醒。"),
+        ]
+        mapping_html = "".join(
+            '<div class="ops-card">'
+            f'<div class="case-id">{escape(event_type)}</div>'
+            f'<h4>{escape(action)}</h4>'
+            f'<p class="subtle">{escape(desc)}</p>'
+            "</div>"
+            for event_type, action, desc in mapping_cards
+        )
+        st.markdown(f'<div class="ops-grid">{mapping_html}</div>', unsafe_allow_html=True)
         if _SERVICE_API_IMPORT_ERROR or get_insight_tasks is None:
             insight_payload = {"data": {"items": INSIGHT_TASKS, "data_mode": "fallback"}}
         else:
