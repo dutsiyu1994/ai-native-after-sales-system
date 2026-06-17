@@ -846,6 +846,35 @@ def render_kpis() -> None:
     )
 
 
+def render_home_positioning() -> None:
+    cards = [
+        (
+            "不是工具合集",
+            "门户把 6 个 demo 按客户入口、AI 服务编排、Case 中台、运营后台和 2.0 优化层组织，强调同一条服务链路。",
+        ),
+        (
+            "演示顺序",
+            "先讲业务成本和人机边界，再走客户输入、AI 判断、转人工、质检、指标监控和优化任务，避免直接点功能。",
+        ),
+        (
+            "生产边界",
+            "当前是可演示的生产闭环原型，不接真实客服系统、CRM、权限和真实用户数据；高风险承诺必须人工确认。",
+        ),
+        (
+            "价值判断",
+            "每个模块都要落到可改善指标：处理时长、转人工率、知识覆盖率、质检一致性、风险提前识别和 badcase 回流。",
+        ),
+    ]
+    card_html = "".join(
+        '<div class="ops-card">'
+        f'<div class="case-id">{escape(title)}</div>'
+        f'<p class="subtle">{escape(body)}</p>'
+        "</div>"
+        for title, body in cards
+    )
+    st.markdown(f'<div class="ops-grid">{card_html}</div>', unsafe_allow_html=True)
+
+
 def render_layer(layer: SystemLayer) -> None:
     demo_tags = "".join(f'<span class="pill">{demo}</span>' for demo in layer.demos)
     capability_tags = "".join(f'<span class="pill">{item}</span>' for item in layer.capabilities)
@@ -1758,6 +1787,7 @@ def main() -> None:
     inject_css()
     render_header()
     render_kpis()
+    render_home_positioning()
 
     tab_arch, tab_demos, tab_cases, tab_ops, tab_metrics, tab_metric_system, tab_launch = st.tabs(
         ["系统架构", "demo 入口", "case 流转", "运营后台", "运营指标", "数据指标体系", "上线逻辑"]
