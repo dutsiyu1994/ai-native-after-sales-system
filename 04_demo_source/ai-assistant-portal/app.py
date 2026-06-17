@@ -1243,21 +1243,19 @@ def render_operations_backend() -> None:
     for case in filtered_cases or BACKEND_CASES:
         priority_class = _priority_class(case["priority"], case["evidence_status"])
         case_cards.append(
-            f"""
-            <div class="ops-card">
-                <div class="case-id">{case["case_id"]}</div>
-                <h4>{case["summary"]}</h4>
-                <div class="ops-meta">
-                    <span class="status-chip {priority_class}">{case["priority"]}</span>
-                    <span class="status-chip">{case["status"]}</span>
-                    <span class="status-chip">{case["risk_level"]}</span>
-                    <span class="status-chip">{case["evidence_status"]}</span>
-                </div>
-                <p class="subtle"><strong>来源：</strong>{case["source"]}</p>
-                <p class="subtle"><strong>动作：</strong>{case["next_action"]}</p>
-                <p class="subtle"><strong>负责人：</strong>{case["owner"]}</p>
-            </div>
-            """
+            '<div class="ops-card">'
+            f'<div class="case-id">{escape(str(case["case_id"]))}</div>'
+            f'<h4>{escape(str(case["summary"]))}</h4>'
+            '<div class="ops-meta">'
+            f'<span class="status-chip {priority_class}">{escape(str(case["priority"]))}</span>'
+            f'<span class="status-chip">{escape(str(case["status"]))}</span>'
+            f'<span class="status-chip">{escape(str(case["risk_level"]))}</span>'
+            f'<span class="status-chip">{escape(str(case["evidence_status"]))}</span>'
+            "</div>"
+            f'<p class="subtle"><strong>来源：</strong>{escape(str(case["source"]))}</p>'
+            f'<p class="subtle"><strong>动作：</strong>{escape(str(case["next_action"]))}</p>'
+            f'<p class="subtle"><strong>负责人：</strong>{escape(str(case["owner"]))}</p>'
+            "</div>"
         )
     st.markdown(f'<div class="ops-grid">{"".join(case_cards)}</div>', unsafe_allow_html=True)
 
@@ -1265,18 +1263,16 @@ def render_operations_backend() -> None:
     handoff_cards = []
     for record in HUMAN_HANDOFF_RECORDS:
         handoff_cards.append(
-            f"""
-            <div class="ops-card">
-                <div class="case-id">{record["case_id"]}</div>
-                <div class="ops-meta">
-                    <span class="status-chip">{record["handler"]}</span>
-                    <span class="status-chip">{record["outcome"]}</span>
-                    <span class="status-chip">{record["ai_review"]}</span>
-                </div>
-                <p class="subtle"><strong>根因：</strong>{record["root_cause"]}</p>
-                <p class="subtle"><strong>处理说明：</strong>{record["note"]}</p>
-            </div>
-            """
+            '<div class="ops-card">'
+            f'<div class="case-id">{escape(str(record["case_id"]))}</div>'
+            '<div class="ops-meta">'
+            f'<span class="status-chip">{escape(str(record["handler"]))}</span>'
+            f'<span class="status-chip">{escape(str(record["outcome"]))}</span>'
+            f'<span class="status-chip">{escape(str(record["ai_review"]))}</span>'
+            "</div>"
+            f'<p class="subtle"><strong>根因：</strong>{escape(str(record["root_cause"]))}</p>'
+            f'<p class="subtle"><strong>处理说明：</strong>{escape(str(record["note"]))}</p>'
+            "</div>"
         )
     st.markdown(f'<div class="ops-grid">{"".join(handoff_cards)}</div>', unsafe_allow_html=True)
 
