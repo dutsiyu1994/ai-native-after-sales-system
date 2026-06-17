@@ -1232,6 +1232,33 @@ def render_operations_backend() -> None:
         ]
     )
 
+    backend_steps = [
+        (
+            "1. 统一入口建 Case",
+            "客户入口、RAG、VOC、质检和总结模块都沉淀到统一 case_id，避免 demo 各自为政。",
+        ),
+        (
+            "2. AI 给出判断链",
+            "每个 Case 展示意图、风险、知识依据、状态和下一步动作，人工能看到 AI 为什么这样判断。",
+        ),
+        (
+            "3. 人工接管回填",
+            "高风险或证据不足的 Case 进入人工处理，回填结果、根因、复核结论和是否需要跟进。",
+        ),
+        (
+            "4. 反馈生成优化任务",
+            "知识未命中、人工修改、低质检分和转人工原因会进入 2.0 优化任务，推动知识库、SOP、Prompt 和风险规则迭代。",
+        ),
+    ]
+    backend_step_html = "".join(
+        '<div class="ops-card">'
+        f'<div class="case-id">{escape(title)}</div>'
+        f'<p class="subtle">{escape(body)}</p>'
+        "</div>"
+        for title, body in backend_steps
+    )
+    st.markdown(f'<div class="ops-grid">{backend_step_html}</div>', unsafe_allow_html=True)
+
     filtered_cases = render_case_center()
     render_api_database_panel()
 
