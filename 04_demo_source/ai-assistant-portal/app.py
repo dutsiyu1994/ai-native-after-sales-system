@@ -723,6 +723,61 @@ def inject_css() -> None:
             white-space: normal;
             overflow-wrap: anywhere;
         }
+        .launch-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 12px;
+            margin: 12px 0 20px;
+        }
+        .launch-card, .boundary-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+            padding: 16px;
+            min-height: 154px;
+        }
+        .launch-index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: var(--primary);
+            font-weight: 850;
+            border: 1px solid #bfdbfe;
+            margin-bottom: 10px;
+        }
+        .launch-card h4, .boundary-card h4 {
+            margin: 0 0 8px 0;
+            color: var(--ink);
+            font-size: 16px;
+        }
+        .launch-card p, .boundary-card p {
+            margin: 6px 0;
+            color: #475569;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .boundary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin: 12px 0 18px;
+        }
+        .boundary-tag {
+            display: inline-flex;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: 760;
+            color: #0f766e;
+            background: #ecfdf5;
+            border: 1px solid #99f6e4;
+            margin-bottom: 8px;
+        }
         @media (max-width: 900px) {
             .hero-grid,
             .layer-card,
@@ -1510,54 +1565,96 @@ def render_business_metric_system() -> None:
 
 def render_launch_logic() -> None:
     st.subheader("上线逻辑与边界")
-    st.markdown(
-        """
-        | 模块 | 1.0 上线要求 | 当前原型覆盖 | 后续补齐 |
-        | --- | --- | --- |
-        | 客户入口 | 接入 Web Chat / 企业微信 / 客服系统，保留身份、会话和订单上下文 | 对客机器人承接自然语言、多轮补槽、风险判断 | 真实渠道鉴权、会话持久化、用户身份映射 |
-        | AI 服务编排 | 意图识别、RAG、风险判断、标准答复和转人工决策统一编排 | 对客机器人 + RAG + 分类 + VOC 模块已拆出关键能力 | 统一服务 API、模型日志、置信度、AB 灰度和安全策略 |
-        | Case 中台 | case_id 贯穿客户输入、AI 判断、知识依据、人工接管和处理结果 | 门户已有 Case 列表、详情、状态流、反馈事件和 SQLite 接口 | 正式数据库、状态机权限、审计日志、外部工单同步 |
-        | 运营后台 | 人工接管、质检复核、知识库维护、指标监控和异常处理 | 已有运营后台、运营指标、数据指标体系和人工回填样例 | 角色权限、SLA 队列、任务分派、知识发布审批 |
-        | 2.0 优化层 | 从 badcase、舆情、低质检和知识缺口中自动发现问题 | VOC、质检、反馈事件和异常诊断已形成优化入口 | 聚类归因、优化建议、灰度验证、效果追踪和自动复盘 |
-        """
-    )
-    boundary_rows = pd.DataFrame(
-        [
-            {
-                "边界类型": "AI 可自主处理",
-                "适用场景": "低风险、规则清晰、知识依据充分、无赔付承诺的标准咨询",
-                "系统动作": "生成标准答复，保留 knowledge_refs 和 decision_trace",
-            },
-            {
-                "边界类型": "AI 需追问补槽",
-                "适用场景": "订单号、物流节点、退款原因、联系方式等关键字段缺失",
-                "系统动作": "继续多轮补槽，不提前承诺处理结果",
-            },
-            {
-                "边界类型": "必须人工接管",
-                "适用场景": "监管投诉、舆情扩散、赔付争议、政策冲突、用户强烈不满",
-                "系统动作": "next_action=human_handoff，生成 handoff_summary",
-            },
-            {
-                "边界类型": "进入优化闭环",
-                "适用场景": "知识未命中、人工改写、质检低分、重复催办、投诉重开",
-                "系统动作": "生成反馈事件，进入知识/SOP/Prompt/规则优化队列",
-            },
-        ]
-    )
+    st.caption("把 6 个 demo 收束成真实系统上线逻辑：入口接入、AI 编排、Case 中台、运营后台和 2.0 优化闭环。")
+
+    launch_steps = [
+        ("01", "客户入口", "承接 Web Chat / 企业微信 / 客服系统输入", "当前由对客机器人模拟客户自然语言、补槽和风险识别。"),
+        ("02", "AI 服务编排", "统一意图识别、RAG、风险判断和转人工决策", "当前由对客机器人、RAG、分类、VOC 模块组合呈现。"),
+        ("03", "Case 中台", "用 case_id 串联用户、订单、对话、风险和知识引用", "当前已有 Case 列表、详情、状态流、反馈事件和 SQLite 接口。"),
+        ("04", "运营后台", "承接人工接管、质检复核、指标监控和知识维护", "当前已有运营后台、运营指标、数据指标体系和人工回填样例。"),
+        ("05", "2.0 优化层", "从 badcase、舆情、低质检和知识缺口中发现问题", "当前已有异常诊断、优先动作和反馈闭环入口。"),
+    ]
+    step_cards = []
+    for index, title, goal, current in launch_steps:
+        step_cards.append(
+            '<div class="launch-card">'
+            f'<div class="launch-index">{escape(index)}</div>'
+            f'<h4>{escape(title)}</h4>'
+            f'<p><strong>上线要求：</strong>{escape(goal)}</p>'
+            f'<p><strong>原型覆盖：</strong>{escape(current)}</p>'
+            "</div>"
+        )
+    st.markdown("#### 1.0 上线闭环")
+    st.markdown(f'<div class="launch-flow">{"".join(step_cards)}</div>', unsafe_allow_html=True)
+
+    col_left, col_right = st.columns(2)
+    with col_left:
+        st.markdown("#### 1.0 可上线边界")
+        st.markdown(
+            """
+            <div class="band">
+                <strong>目标：</strong>让系统能在真实售后流程中承接低风险问题、生成可追溯 case、识别高风险并转人工。<br>
+                <strong>必须具备：</strong>渠道接入、身份映射、case 状态机、知识依据、人工接管、权限审计和基础指标监控。<br>
+                <strong>不可越界：</strong>AI 不直接承诺赔付、退改、监管结论或最终责任归属。
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col_right:
+        st.markdown("#### 2.0 优化边界")
+        st.markdown(
+            """
+            <div class="band">
+                <strong>目标：</strong>让系统从运行数据中发现知识缺口、流程卡点、风险误判和质检问题。<br>
+                <strong>优化对象：</strong>知识库、SOP、Prompt、风险规则、人工培训和服务指标口径。<br>
+                <strong>审批要求：</strong>优化建议必须有人审核、灰度验证，并通过指标变化复盘效果。
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    boundary_cards = [
+        ("AI 可自主处理", "低风险、规则清晰、知识依据充分、无赔付承诺的标准咨询。", "生成标准答复，保留 knowledge_refs 和 decision_trace。"),
+        ("AI 继续追问补槽", "订单号、物流节点、退款原因、联系方式等关键字段缺失。", "继续多轮补槽，不提前承诺处理结果。"),
+        ("必须人工接管", "监管投诉、舆情扩散、赔付争议、政策冲突、用户强烈不满。", "next_action=human_handoff，生成 handoff_summary。"),
+        ("进入优化闭环", "知识未命中、人工改写、质检低分、重复催办、投诉重开。", "生成反馈事件，进入知识/SOP/Prompt/规则优化队列。"),
+    ]
+    cards = []
+    for title, scene, action in boundary_cards:
+        cards.append(
+            '<div class="boundary-card">'
+            f'<div class="boundary-tag">{escape(title)}</div>'
+            f'<p><strong>适用场景：</strong>{escape(scene)}</p>'
+            f'<p><strong>系统动作：</strong>{escape(action)}</p>'
+            "</div>"
+        )
     st.markdown("#### 人机分工边界")
-    st.dataframe(boundary_rows, use_container_width=True, hide_index=True)
-    st.markdown(
-        """
-        <div class="band">
-            <strong>生产表达边界：</strong>
-            当前系统可定位为“可落地的生产逻辑原型”：已经覆盖客户输入、AI 判断、Case 中台、人工接管、
-            运营指标和反馈优化闭环；不表述为已经接入真实企业客户系统或真实订单数据。
-            数据指标体系中的业务数据为 demo sample，用于展示监控和决策逻辑。
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<div class="boundary-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+
+    st.markdown("#### 数据与表达边界")
+    data_col, expression_col = st.columns(2)
+    with data_col:
+        st.markdown(
+            """
+            <div class="band">
+                <strong>数据边界：</strong>
+                当前业务指标使用 demo sample 模拟数据，用于展示监控口径、异常判断和决策动作。
+                运营指标页仍保留系统使用指标，不与业务指标体系混用。
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with expression_col:
+        st.markdown(
+            """
+            <div class="band">
+                <strong>表达边界：</strong>
+                当前系统定位为可落地的生产逻辑原型；可以说明具备真实上线链路理解，
+                但不表述为已经接入真实企业客户系统、真实订单或真实客服渠道。
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_ai_native_logic() -> None:
