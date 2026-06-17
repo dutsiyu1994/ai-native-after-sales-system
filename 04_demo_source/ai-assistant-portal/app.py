@@ -876,26 +876,24 @@ def render_home_positioning() -> None:
 
 
 def render_layer(layer: SystemLayer) -> None:
-    demo_tags = "".join(f'<span class="pill">{demo}</span>' for demo in layer.demos)
-    capability_tags = "".join(f'<span class="pill">{item}</span>' for item in layer.capabilities)
-    st.markdown(
-        f"""
-        <div class="layer-card">
-            <div class="layer-index">{layer.index}</div>
-            <div>
-                <h3>{layer.title}</h3>
-                <div class="subtle"><strong>{layer.subtitle}</strong></div>
-                <p class="subtle">{layer.role}</p>
-                <div>{capability_tags}</div>
-            </div>
-            <div>
-                <div class="section-label">关联 demo</div>
-                <div>{demo_tags}</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    demo_tags = "".join(f'<span class="pill">{escape(str(demo))}</span>' for demo in layer.demos)
+    capability_tags = "".join(f'<span class="pill">{escape(str(item))}</span>' for item in layer.capabilities)
+    html = (
+        '<div class="layer-card">'
+        f'<div class="layer-index">{escape(str(layer.index))}</div>'
+        "<div>"
+        f"<h3>{escape(str(layer.title))}</h3>"
+        f'<div class="subtle"><strong>{escape(str(layer.subtitle))}</strong></div>'
+        f'<p class="subtle">{escape(str(layer.role))}</p>'
+        f"<div>{capability_tags}</div>"
+        "</div>"
+        "<div>"
+        '<div class="section-label">关联 demo</div>'
+        f"<div>{demo_tags}</div>"
+        "</div>"
+        "</div>"
     )
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def render_architecture() -> None:
@@ -905,20 +903,18 @@ def render_architecture() -> None:
 
 
 def render_demo_card(demo: DemoLink) -> None:
-    st.markdown(
-        f"""
-        <div class="demo-card">
-            <span class="pill">{demo.layer}</span>
-            <h3>{demo.name}</h3>
-            <p class="subtle"><strong>职责：</strong>{demo.purpose}</p>
-            <p class="subtle"><strong>输入：</strong>{demo.input_text}</p>
-            <p class="subtle"><strong>输出：</strong>{demo.output_text}</p>
-            <p class="subtle"><strong>边界：</strong>{demo.boundary}</p>
-            <a class="open-link" href="{demo.url}" target="_blank">打开 demo</a>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    html = (
+        '<div class="demo-card">'
+        f'<span class="pill">{escape(str(demo.layer))}</span>'
+        f"<h3>{escape(str(demo.name))}</h3>"
+        f'<p class="subtle"><strong>职责：</strong>{escape(str(demo.purpose))}</p>'
+        f'<p class="subtle"><strong>输入：</strong>{escape(str(demo.input_text))}</p>'
+        f'<p class="subtle"><strong>输出：</strong>{escape(str(demo.output_text))}</p>'
+        f'<p class="subtle"><strong>边界：</strong>{escape(str(demo.boundary))}</p>'
+        f'<a class="open-link" href="{escape(str(demo.url))}" target="_blank">打开 demo</a>'
+        "</div>"
     )
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def render_demos() -> None:
@@ -938,25 +934,23 @@ def render_case_flow() -> None:
     st.caption("展示后台应如何把客户问题映射到 case、风险、知识和人工动作。")
     for case in SAMPLE_CASES:
         risk_class = "risk-high" if case["severity"] == "high" else "risk-low"
-        st.markdown(
-            f"""
-            <div class="case-row">
-                <div>
-                    <div class="case-id">{case["case_id"]}</div>
-                    <div class="subtle">{case["topic"]}</div>
-                </div>
-                <div>
-                    <div class="section-label">流转路径</div>
-                    <div>{case["route"]}</div>
-                </div>
-                <div>
-                    <div class="{risk_class}">{case["risk"]}</div>
-                    <div class="subtle">next_action: <strong>{case["action"]}</strong></div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        html = (
+            '<div class="case-row">'
+            "<div>"
+            f'<div class="case-id">{escape(str(case["case_id"]))}</div>'
+            f'<div class="subtle">{escape(str(case["topic"]))}</div>'
+            "</div>"
+            "<div>"
+            '<div class="section-label">流转路径</div>'
+            f'<div>{escape(str(case["route"]))}</div>'
+            "</div>"
+            "<div>"
+            f'<div class="{risk_class}">{escape(str(case["risk"]))}</div>'
+            f'<div class="subtle">next_action: <strong>{escape(str(case["action"]))}</strong></div>'
+            "</div>"
+            "</div>"
         )
+        st.markdown(html, unsafe_allow_html=True)
 
 
 def _priority_class(priority: str, evidence_status: str = "") -> str:
@@ -1667,14 +1661,12 @@ def render_business_metric_system() -> None:
 
     st.markdown("#### 指标治理规则")
     for item in metric_system.get("governance", []):
-        st.markdown(
-            f"""
-            <div class="band">
-                <strong>{item["rule"]}：</strong>{item["detail"]}
-            </div>
-            """,
-            unsafe_allow_html=True,
+        html = (
+            '<div class="band">'
+            f'<strong>{escape(str(item["rule"]))}：</strong>{escape(str(item["detail"]))}'
+            "</div>"
         )
+        st.markdown(html, unsafe_allow_html=True)
 
 
 def render_launch_logic() -> None:
