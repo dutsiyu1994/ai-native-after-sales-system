@@ -73,6 +73,13 @@ API_ENDPOINTS = [
     },
     {
         "method": "GET",
+        "path": "/api/v1/insight-tasks",
+        "name": "get_insight_tasks",
+        "purpose": "convert feedback events and metric anomalies into 2.0 optimization tasks.",
+        "storage": "feedback_events + metric anomalies",
+    },
+    {
+        "method": "GET",
         "path": "/api/v1/system/db-health",
         "name": "get_database_health",
         "purpose": "show database path, table status, record counts, and write readiness.",
@@ -749,6 +756,83 @@ def get_business_metric_system(
                 {"cadence": "月报", "focus": "业务结果、项目收益、下月优化计划"},
                 {"cadence": "异常反馈", "focus": "当天定位原因、同步 owner、进入优化任务"},
             ],
+        }
+    )
+
+
+def get_insight_tasks(
+    fallback_cases: list[dict[str, Any]] | None = None,
+    fallback_events: list[dict[str, Any]] | None = None,
+    limit: int = 12,
+) -> dict[str, Any]:
+    feedback_payload = list_feedback_records(fallback_events=fallback_events)["data"]
+    metric_payload = get_business_metric_system(
+        fallback_cases=fallback_cases,
+        fallback_events=fallback_events,
+    )["data"]
+
+    events = feedback_payload.get("items", [])
+    anomalies = metric_payload.get("anomaly_queue", [])
+    tasks: list[dict[str, Any]] = []
+
+    action_by_event = {
+        "knowledge_miss": ("知识补齐", "新增或修订知识片段，补充引用条件和适用边界。"),
+        "handoff_reason": ("风险规则校准", "复核转人工原因，调整高风险识别和人工接管条件。"),
+        "human_modification": ("话术/SOP 修订", "沉淀人工改写内容，更新标准答复和承诺边界。"),
+        "low_quality_score": ("质检规则优化", "复盘低分样本，更新质检项、培训点和 AI 回复过滤规则。"),
+        "inquiry_failure": ("补槽策略优化", "补充必要字段、追问顺序和失败兜底动作。"),
+    }
+    priority_rank = {"P0": 0, "P1": 1, "P2": 2}
+
+    for index, event in enumerate(events, start=1):
+        priority = event.get("priority", "P2")
+        if priority not in {"P0", "P1"}:
+            continue
+        event_type = event.get("event_type", "feedback_event")
+        action_type, recommendation = action_by_event.get(
+            event_type,
+            ("反馈复盘", event.get("suggested_action", "复盘反馈事件并明确 owner。")),
+        )
+        tasks.append(
+            {
+                "task_id": f"INS-FB-{index:03d}",
+                "priority": priority,
+                "source_signal": event_type,
+                "case_id": event.get("case_id", ""),
+                "owner": "AI 产品运营" if event_type in {"knowledge_miss", "human_modification"} else "服务运营",
+                "action_type": action_type,
+                "recommendation": event.get("suggested_action") or recommendation,
+                "acceptance": "形成知识/SOP/Prompt/规则变更记录，并在下次样本中复核命中效果。",
+                "status": "待评审",
+            }
+        )
+
+    for index, anomaly in enumerate(anomalies[:5], start=1):
+        priority = anomaly.get("priority", "P1")
+        tasks.append(
+            {
+                "task_id": f"INS-MT-{index:03d}",
+                "priority": priority,
+                "source_signal": anomaly.get("metric", "metric_anomaly"),
+                "case_id": "",
+                "owner": anomaly.get("owner", "服务运营"),
+                "action_type": "指标异常治理",
+                "recommendation": anomaly.get("next_action", "定位指标异常原因并进入周报复盘。"),
+                "acceptance": "输出异常原因、样本证据、处理动作和指标回看结果。",
+                "status": "待处理" if priority == "P0" else "待排期",
+            }
+        )
+
+    tasks.sort(key=lambda item: (priority_rank.get(item["priority"], 9), item["task_id"]))
+    tasks = tasks[:limit]
+
+    return api_response(
+        {
+            "items": tasks,
+            "total": len(tasks),
+            "feedback_source": feedback_payload.get("source", "unknown"),
+            "metric_source": metric_payload.get("source", "unknown"),
+            "data_mode": metric_payload.get("data_mode", "demo_sample"),
         }
     )
 

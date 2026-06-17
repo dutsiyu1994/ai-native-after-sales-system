@@ -27,6 +27,7 @@ try:
         get_case_detail,
         get_business_metric_system,
         get_database_health,
+        get_insight_tasks,
         get_ops_dashboard,
         get_ops_metrics,
         list_case_records,
@@ -1289,33 +1290,56 @@ def render_operations_backend() -> None:
             priority_class = _priority_class(event["priority"])
             source = event.get("source") or event.get("source_module", "")
             st.markdown(
-                f"""
-                <div class="ops-card">
-                    <div class="ops-meta">
-                        <span class="status-chip {priority_class}">{event["priority"]}</span>
-                        <span class="status-chip">{event["event_type"]}</span>
-                        <span class="status-chip">{source}</span>
-                    </div>
-                    <div class="case-id">{event["case_id"]}</div>
-                    <p class="subtle"><strong>根因：</strong>{event["root_cause"]}</p>
-                    <p class="subtle"><strong>建议：</strong>{event["suggested_action"]}</p>
-                </div>
-                """,
+                '<div class="ops-card">'
+                '<div class="ops-meta">'
+                f'<span class="status-chip {priority_class}">{escape(str(event["priority"]))}</span>'
+                f'<span class="status-chip">{escape(str(event["event_type"]))}</span>'
+                f'<span class="status-chip">{escape(str(source))}</span>'
+                "</div>"
+                f'<div class="case-id">{escape(str(event["case_id"]))}</div>'
+                f'<p class="subtle"><strong>根因：</strong>{escape(str(event["root_cause"]))}</p>'
+                f'<p class="subtle"><strong>建议：</strong>{escape(str(event["suggested_action"]))}</p>'
+                "</div>",
                 unsafe_allow_html=True,
             )
 
     with right:
         st.markdown("#### 2.0 优化任务")
-        for task in INSIGHT_TASKS:
+        if _SERVICE_API_IMPORT_ERROR:
+            insight_payload = {"data": {"items": INSIGHT_TASKS, "data_mode": "fallback"}}
+        else:
+            insight_payload = get_insight_tasks(
+                fallback_cases=BACKEND_CASES,
+                fallback_events=FEEDBACK_EVENTS,
+            )
+        insight_data = insight_payload.get("data") or {}
+        st.caption(f"数据模式: {insight_data.get('data_mode', 'demo_sample')} / 接口: GET /api/v1/insight-tasks")
+        for task in insight_data.get("items", []):
+            if "task_id" in task:
+                priority_class = _priority_class(task.get("priority", "P1"))
+                st.markdown(
+                    '<div class="ops-card">'
+                    '<div class="ops-meta">'
+                    f'<span class="status-chip {priority_class}">{escape(str(task.get("priority", "")))}</span>'
+                    f'<span class="status-chip">{escape(str(task.get("status", "")))}</span>'
+                    f'<span class="status-chip">{escape(str(task.get("action_type", "")))}</span>'
+                    "</div>"
+                    f'<div class="case-id">{escape(str(task.get("task_id", "")))}</div>'
+                    f'<h4>{escape(str(task.get("source_signal", "")))}</h4>'
+                    f'<p class="subtle"><strong>Owner：</strong>{escape(str(task.get("owner", "")))}</p>'
+                    f'<p class="subtle"><strong>建议动作：</strong>{escape(str(task.get("recommendation", "")))}</p>'
+                    f'<p class="subtle"><strong>验收标准：</strong>{escape(str(task.get("acceptance", "")))}</p>'
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                continue
             st.markdown(
-                f"""
-                <div class="ops-card">
-                    <h4>{task["title"]}</h4>
-                    <p class="subtle"><strong>输入信号：</strong>{task["input"]}</p>
-                    <p class="subtle"><strong>建议动作：</strong>{task["action"]}</p>
-                    <p class="subtle"><strong>预期收益：</strong>{task["expected"]}</p>
-                </div>
-                """,
+                '<div class="ops-card">'
+                f'<h4>{escape(str(task["title"]))}</h4>'
+                f'<p class="subtle"><strong>输入信号：</strong>{escape(str(task["input"]))}</p>'
+                f'<p class="subtle"><strong>建议动作：</strong>{escape(str(task["action"]))}</p>'
+                f'<p class="subtle"><strong>预期收益：</strong>{escape(str(task["expected"]))}</p>'
+                "</div>",
                 unsafe_allow_html=True,
             )
 
