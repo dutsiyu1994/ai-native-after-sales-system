@@ -1669,6 +1669,61 @@ def render_business_metric_system() -> None:
         st.markdown(html, unsafe_allow_html=True)
 
 
+def render_demo_mode() -> None:
+    st.subheader("演示模式 / 3-5 分钟标准链路")
+    st.caption("用一条固定高风险样例把门户、对客机器人、Case 中台、运营后台、指标体系和 2.0 优化任务串起来。")
+
+    st.markdown("#### 推荐输入样例")
+    sample_text = "航班延误 5 小时，客户要求退票和赔付，并表示如果今天不给明确答复就向民航局投诉。"
+    st.code(sample_text, language="text")
+
+    expected_cards = [
+        ("对客机器人", "识别退票赔付诉求，命中监管/赔付风险，生成统一 case_id，并给出 human_handoff。"),
+        ("Case 中台", "看到同一条 case 的状态、优先级、风险等级、知识引用、状态流和转人工摘要。"),
+        ("人工接管", "高风险承诺不由 AI 自动处理，人工确认政策边界后回填处理结果和根因。"),
+        ("反馈事件", "人工修改、转人工原因、知识未命中或低质检分进入反馈事件队列。"),
+        ("2.0 优化任务", "反馈事件被转换成知识库补充、SOP 调整、Prompt 校准或风险规则更新任务。"),
+        ("指标体系", "用运营指标看系统使用效果，用数据指标体系看整体服务链路是否健康。"),
+    ]
+    expected_html = "".join(
+        '<div class="ops-card">'
+        f'<div class="case-id">{escape(title)}</div>'
+        f'<p class="subtle">{escape(body)}</p>'
+        "</div>"
+        for title, body in expected_cards
+    )
+    st.markdown(f'<div class="ops-grid">{expected_html}</div>', unsafe_allow_html=True)
+
+    st.markdown("#### 演示步骤")
+    steps = [
+        {"step": "1", "page": "首页", "action": "先讲不是 6 个工具拼盘，而是按生产链路组织的 AI native 售后服务系统。", "proof": "首页定位卡 + 5 个核心对象"},
+        {"step": "2", "page": "对客机器人", "action": "复制推荐输入样例，生成 case、风险标签、知识引用和转人工摘要。", "proof": "case_id / risk_tags / next_action=human_handoff"},
+        {"step": "3", "page": "运营后台", "action": "回门户查看 Case 队列、人工接管回填、反馈事件和 2.0 优化任务。", "proof": "Case 中台 4 步闭环 + 反馈到优化任务映射"},
+        {"step": "4", "page": "运营指标", "action": "解释自动解决率、转人工率、知识覆盖率、高风险占比和反馈压力。", "proof": "证明系统是否真的被使用"},
+        {"step": "5", "page": "数据指标体系", "action": "解释整体指标、前处理、过程、结果、反馈五层业务监控。", "proof": "证明系统能监控、归因并推动动作"},
+        {"step": "6", "page": "上线逻辑", "action": "说明 1.0 能力边界、2.0 优化层、人机分工和生产表达边界。", "proof": "避免把原型包装成已上线生产系统"},
+    ]
+    st.dataframe(pd.DataFrame(steps), use_container_width=True, hide_index=True)
+
+    st.markdown("#### 6 个 demo 统一讲解口径")
+    demo_rows = [
+        {"demo": "对客机器人", "统一样例中的角色": "客户入口，创建 case 并判断是否转人工", "重点字段": "case_id / risk_tags / handoff_summary"},
+        {"demo": "客诉分类", "统一样例中的角色": "把文本转成问题类型、情绪和优先级", "重点字段": "category / sentiment / priority"},
+        {"demo": "VOC 风险", "统一样例中的角色": "识别监管投诉、舆情和批量风险信号", "重点字段": "risk_level / trend_signal / recommended_action"},
+        {"demo": "RAG 知识库", "统一样例中的角色": "提供政策依据并标记是否需要人工确认", "重点字段": "knowledge_refs / evidence_status"},
+        {"demo": "智能总结", "统一样例中的角色": "生成转人工摘要和待跟进事项", "重点字段": "handoff_summary / missing_slots / pending_items"},
+        {"demo": "客服质检", "统一样例中的角色": "检查高风险转人工、承诺边界和服务话术", "重点字段": "quality_score / risk_flags / coaching_action"},
+    ]
+    st.dataframe(pd.DataFrame(demo_rows), use_container_width=True, hide_index=True)
+
+    st.markdown("#### 30 秒收口话术")
+    st.info(
+        "这套演示的重点不是展示单点 AI 功能，而是证明一条售后服务链路可以被 AI 重新组织："
+        "客户输入生成统一 case，AI 负责识别、引用知识、摘要、质检和风险提示，人负责高风险确认和最终处理，"
+        "后续通过运营指标、数据指标体系和反馈事件生成 2.0 优化任务。"
+    )
+
+
 def render_launch_logic() -> None:
     st.subheader("上线逻辑与边界")
     st.caption("把 6 个 demo 收束成真实系统上线逻辑：入口接入、AI 编排、Case 中台、运营后台和 2.0 优化闭环。")
@@ -1796,9 +1851,12 @@ def main() -> None:
     render_kpis()
     render_home_positioning()
 
-    tab_arch, tab_demos, tab_cases, tab_ops, tab_metrics, tab_metric_system, tab_launch = st.tabs(
-        ["系统架构", "demo 入口", "case 流转", "运营后台", "运营指标", "数据指标体系", "上线逻辑"]
+    tab_demo_mode, tab_arch, tab_demos, tab_cases, tab_ops, tab_metrics, tab_metric_system, tab_launch = st.tabs(
+        ["演示模式", "系统架构", "demo 入口", "case 流转", "运营后台", "运营指标", "数据指标体系", "上线逻辑"]
     )
+
+    with tab_demo_mode:
+        render_demo_mode()
 
     with tab_arch:
         render_architecture()
