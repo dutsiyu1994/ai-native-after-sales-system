@@ -22,19 +22,21 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 try:
+    from ai_native_shared import service_api as _service_api
     from ai_native_shared.service_api import (
         API_ENDPOINTS,
         get_case_detail,
         get_business_metric_system,
         get_database_health,
-        get_insight_tasks,
         get_ops_dashboard,
         get_ops_metrics,
         list_case_records,
         list_feedback_records,
     )
+    get_insight_tasks = getattr(_service_api, "get_insight_tasks", None)
 except Exception as exc:  # pragma: no cover - Streamlit fallback path
     API_ENDPOINTS = []
+    get_insight_tasks = None
     _SERVICE_API_IMPORT_ERROR = str(exc)
 else:
     _SERVICE_API_IMPORT_ERROR = ""
@@ -1305,7 +1307,7 @@ def render_operations_backend() -> None:
 
     with right:
         st.markdown("#### 2.0 优化任务")
-        if _SERVICE_API_IMPORT_ERROR:
+        if _SERVICE_API_IMPORT_ERROR or get_insight_tasks is None:
             insight_payload = {"data": {"items": INSIGHT_TASKS, "data_mode": "fallback"}}
         else:
             insight_payload = get_insight_tasks(
