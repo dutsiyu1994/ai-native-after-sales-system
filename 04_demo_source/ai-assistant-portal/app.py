@@ -1502,6 +1502,33 @@ def render_business_metric_system() -> None:
         ]
     )
 
+    guide_cards = [
+        (
+            "为什么看这页",
+            "这页不是系统使用统计，而是判断售后服务链路是否健康：风险规模、入口消化、过程履约、结果闭环和客户反馈是否能被持续监控。",
+        ),
+        (
+            "先看什么",
+            "先看上方 5 个核心指标判断风险盘面，再看五层指标地图定位问题发生在哪一层，最后看异常队列和优先动作决定谁来处理。",
+        ),
+        (
+            "异常后怎么闭环",
+            "异常指标必须落到 owner、动作、验收标准和复盘节奏，不能只停留在看板展示；高优先级问题应进入 2.0 优化任务。",
+        ),
+        (
+            "和运营指标的区别",
+            "运营指标页看系统使用效果，如自动解决率、转人工率、知识覆盖率；本页看整体业务监控体系，如投诉结构、前处理能力和反馈结果。",
+        ),
+    ]
+    guide_html = "".join(
+        '<div class="ops-card">'
+        f'<div class="case-id">{escape(title)}</div>'
+        f'<p class="subtle">{escape(body)}</p>'
+        "</div>"
+        for title, body in guide_cards
+    )
+    st.markdown(f'<div class="ops-grid">{guide_html}</div>', unsafe_allow_html=True)
+
     st.markdown("#### 五层指标地图")
     layer_cards = []
     for layer in metric_system.get("layers", []):
