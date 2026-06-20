@@ -1,0 +1,361 @@
+{
+  "_meta": {
+    "model": "DeepSeek-V3 (deepseek-chat)",
+    "generated_at": "2026-06-21",
+    "turns": 3,
+    "note": "preset multi-turn replay from real DeepSeek output; shown on first load when no API key"
+  },
+  "replay": {
+    "conversation": [
+      {
+        "role": "customer",
+        "content": "航班延误后我要求退票赔付，如果今天不给方案我就投诉到民航局。"
+      },
+      {
+        "role": "agent",
+        "content": "小助非常理解您因为航班延误带来的不便和着急的心情，先别生气，我们一定尽全力帮您处理。根据政策，因航司原因导致的延误，我们可以协助您申请全款退票。不过，为了尽快核实具体情况并给您一个准确的答复，我需要先了解一下您的订单号，方便我帮您查询航班状态和相关记录吗？"
+      },
+      {
+        "role": "customer",
+        "content": "订单号是 A123456789，航班是今天上午10点从上海飞北京的。"
+      },
+      {
+        "role": "agent",
+        "content": "收到您的订单号 A123456789，已经帮您记录下今天上午10点上海飞北京的航班延误情况。我非常理解您希望能尽快得到一个明确的方案，针对您提出的退票和赔付需求，根据政策，我们会根据延误的具体原因和时长来核实处理。\n\n您的情况我已经做好详细记录，这属于需要进一步核实并协调的复杂问题。我已将您的诉求（退票赔付）和订单信息整理好，需要转接给更专业的专员为您跟进处理，确保今天内给您一个答复，请您稍候，专员马上就会接入。"
+      },
+      {
+        "role": "customer",
+        "content": "我要求全额退款再加误工费赔偿，否则我就去媒体曝光。"
+      },
+      {
+        "role": "agent",
+        "content": "我完全理解您现在的心情，航班延误打乱了计划，还给您造成了额外的困扰，您提出的这些诉求我都认真记下了。对于您提到的全额退款和误工费赔偿，这属于需要航司根据具体延误原因和时长来判定的部分，我作为客服无法直接承诺具体金额，但我会将您的全部要求完整记录在工单中。\n\n您放心，您的情况已经升级为最高优先级的工单，我会立即为您转接给能够与航司直接沟通的专员。专员会尽快核实航班延误的具体责任，并按照航司政策为您争取最合理的方案。请您给我一点时间，专员会在今天内主动联系您，一定会给您一个明确的答复。"
+      }
+    ],
+    "slots": {
+      "order_id": {
+        "status": "provided",
+        "value": "A123456789"
+      },
+      "event_time": {
+        "status": "provided",
+        "value": "今天"
+      },
+      "customer_request": {
+        "status": "provided",
+        "value": "航班延误后我要求退票赔付，如果今天不给方案我就投诉到民航局。 / 订单号是 A123456789，航班是今天上午10点从上海飞北京的。 / 我要求全额退款再加误工费赔偿，否则我就去媒体曝光。"
+      },
+      "evidence": {
+        "status": "missing",
+        "value": ""
+      }
+    },
+    "risk_tags": [
+      "regulatory_or_public_risk",
+      "compensation_or_refund"
+    ],
+    "current_case_id": "CASE-20260621-0004",
+    "case_started_at": "2026-06-21 03:00:48",
+    "case_context": {
+      "case_id": "CASE-20260621-0004",
+      "created_at": "2026-06-21 03:00:58",
+      "source": "customer_agent",
+      "customer_message": "我要求全额退款再加误工费赔偿，否则我就去媒体曝光。",
+      "conversation": [
+        {
+          "role": "customer",
+          "content": "航班延误后我要求退票赔付，如果今天不给方案我就投诉到民航局。"
+        },
+        {
+          "role": "agent",
+          "content": "小助非常理解您因为航班延误带来的不便和着急的心情，先别生气，我们一定尽全力帮您处理。根据政策，因航司原因导致的延误，我们可以协助您申请全款退票。不过，为了尽快核实具体情况并给您一个准确的答复，我需要先了解一下您的订单号，方便我帮您查询航班状态和相关记录吗？"
+        },
+        {
+          "role": "customer",
+          "content": "订单号是 A123456789，航班是今天上午10点从上海飞北京的。"
+        },
+        {
+          "role": "agent",
+          "content": "收到您的订单号 A123456789，已经帮您记录下今天上午10点上海飞北京的航班延误情况。我非常理解您希望能尽快得到一个明确的方案，针对您提出的退票和赔付需求，根据政策，我们会根据延误的具体原因和时长来核实处理。\n\n您的情况我已经做好详细记录，这属于需要进一步核实并协调的复杂问题。我已将您的诉求（退票赔付）和订单信息整理好，需要转接给更专业的专员为您跟进处理，确保今天内给您一个答复，请您稍候，专员马上就会接入。"
+        },
+        {
+          "role": "customer",
+          "content": "我要求全额退款再加误工费赔偿，否则我就去媒体曝光。"
+        },
+        {
+          "role": "agent",
+          "content": "我完全理解您现在的心情，航班延误打乱了计划，还给您造成了额外的困扰，您提出的这些诉求我都认真记下了。对于您提到的全额退款和误工费赔偿，这属于需要航司根据具体延误原因和时长来判定的部分，我作为客服无法直接承诺具体金额，但我会将您的全部要求完整记录在工单中。\n\n您放心，您的情况已经升级为最高优先级的工单，我会立即为您转接给能够与航司直接沟通的专员。专员会尽快核实航班延误的具体责任，并按照航司政策为您争取最合理的方案。请您给我一点时间，专员会在今天内主动联系您，一定会给您一个明确的答复。"
+        }
+      ],
+      "customer_intent": "refund_compensation_complaint",
+      "required_slots": {
+        "order_id": {
+          "status": "provided",
+          "value": "A123456789"
+        },
+        "event_time": {
+          "status": "provided",
+          "value": "今天"
+        },
+        "customer_request": {
+          "status": "provided",
+          "value": "航班延误后我要求退票赔付，如果今天不给方案我就投诉到民航局。 / 订单号是 A123456789，航班是今天上午10点从上海飞北京的。 / 我要求全额退款再加误工费赔偿，否则我就去媒体曝光。"
+        },
+        "evidence": {
+          "status": "missing",
+          "value": ""
+        }
+      },
+      "risk_tags": [
+        "regulatory_or_public_risk",
+        "compensation_or_refund"
+      ],
+      "knowledge_refs": [
+        {
+          "source": "退款处理规范",
+          "chunk_id": "KB-002",
+          "title": "非自愿退票赔付标准",
+          "text": "因航司原因（航班延误、取消、超售等）导致的非自愿退票，需核实航班状态后协助客户全款退票。赔付除退票金额外，需确认航司是否额外提供赔偿（如代金券、里程或现金补偿），具体赔偿标准由航司政策和事发时长决定。客户要求赔付时，不得自行承诺具体金额，需核实航司政策后告知。",
+          "score": 0.224
+        },
+        {
+          "source": "人机协同",
+          "chunk_id": "KB-025",
+          "title": "AI与人工的职责边界",
+          "text": "AI客服可以做的：查询订单状态和物流轨迹、解释退换货和退款规则、收集客户问题和基本信息、生成工单和转人工摘要、推送标准FAQ和帮助文档。必须人工确认的：承诺赔付金额和退款方式、处理监管投诉和媒体舆情、判定责任归属和争议处理、修改订单金额和价格、涉及隐私和安全的敏感操作、客户明确要求人工服务的场景。",
+          "score": 0.209
+        },
+        {
+          "source": "问题分级",
+          "chunk_id": "KB-024",
+          "title": "高风险场景识别",
+          "text": "以下场景自动标记为高风险需转人工：①客户明确提及向监管部门投诉（民航局/12315/消协/工商）；②客户威胁媒体曝光或社交平台公开；③涉及大额赔付（≥500元）或多次反复投诉；④客户情绪极度激动、辱骂或威胁；⑤涉及隐私泄露、账号安全、法律纠纷；⑥AI知识库无法覆盖且无法确认处理标准的复杂场景。高风险case必须1小时内有人工介入。",
+          "score": 0.2
+        }
+      ],
+      "next_action": "human_handoff",
+      "handoff_summary": "客户原话：我要求全额退款再加误工费赔偿，否则我就去媒体曝光。。已收集：order_id=A123456789；event_time=今天；customer_request=航班延误后我要求退票赔付，如果今天不给方案我就投诉到民航局。 / 订单号是 A123456789，航班是今天上午10点从上海飞北京的。 / 我要求全额退款再加误工费赔偿，否则我就去媒体曝光。。仍缺失：evidence。风险标签：regulatory_or_public_risk、compensation_or_refund。命中知识源：人机协同、退款处理规范、问题分级。建议动作：人工确认高风险事项的适用政策，补充缺失字段后给出最终处理方案并设定回复时限。。",
+      "state_history": [
+        {
+          "turn": 1,
+          "timestamp": "2026-06-21 03:00:51",
+          "case_id": "CASE-20260621-0004",
+          "provided_slots": [
+            "event_time",
+            "customer_request"
+          ],
+          "missing_slots": [
+            "order_id",
+            "evidence"
+          ],
+          "risk_tags": [
+            "regulatory_or_public_risk",
+            "compensation_or_refund"
+          ],
+          "knowledge_refs": [
+            "KB-002",
+            "KB-013",
+            "KB-019"
+          ],
+          "next_action": "human_handoff",
+          "status": "handoff_pending",
+          "priority": "P0",
+          "risk_level": "high",
+          "evidence_status": "sufficient",
+          "decision_reason": "命中高风险标签，需人工确认赔付、监管或争议边界。"
+        },
+        {
+          "turn": 2,
+          "timestamp": "2026-06-21 03:00:54",
+          "case_id": "CASE-20260621-0004",
+          "provided_slots": [
+            "order_id",
+            "event_time",
+            "customer_request"
+          ],
+          "missing_slots": [
+            "evidence"
+          ],
+          "risk_tags": [],
+          "knowledge_refs": [
+            "KB-009",
+            "KB-026",
+            "KB-021"
+          ],
+          "next_action": "standard_answer",
+          "status": "ai_answered",
+          "priority": "P2",
+          "risk_level": "low",
+          "evidence_status": "sufficient",
+          "decision_reason": "仍缺少必要字段：evidence。"
+        },
+        {
+          "turn": 3,
+          "timestamp": "2026-06-21 03:00:58",
+          "case_id": "CASE-20260621-0004",
+          "provided_slots": [
+            "order_id",
+            "event_time",
+            "customer_request"
+          ],
+          "missing_slots": [
+            "evidence"
+          ],
+          "risk_tags": [
+            "regulatory_or_public_risk",
+            "compensation_or_refund"
+          ],
+          "knowledge_refs": [
+            "KB-002",
+            "KB-025",
+            "KB-024"
+          ],
+          "next_action": "human_handoff",
+          "status": "handoff_pending",
+          "priority": "P0",
+          "risk_level": "high",
+          "evidence_status": "sufficient",
+          "decision_reason": "命中高风险标签，需人工确认赔付、监管或争议边界。"
+        }
+      ],
+      "status": "handoff_pending",
+      "priority": "P0",
+      "risk_level": "high",
+      "evidence_status": "sufficient",
+      "decision_reason": "命中高风险标签，需人工确认赔付、监管或争议边界。",
+      "decision_trace": {
+        "intent": "refund_compensation_complaint",
+        "provided_slots": [
+          "order_id",
+          "event_time",
+          "customer_request"
+        ],
+        "missing_slots": [
+          "evidence"
+        ],
+        "risk_tags": [
+          "regulatory_or_public_risk",
+          "compensation_or_refund"
+        ],
+        "knowledge_ref_count": 3,
+        "next_action": "human_handoff",
+        "decision_reason": "命中高风险标签，需人工确认赔付、监管或争议边界。"
+      }
+    },
+    "state_history": [
+      {
+        "turn": 1,
+        "timestamp": "2026-06-21 03:00:51",
+        "case_id": "CASE-20260621-0004",
+        "provided_slots": [
+          "event_time",
+          "customer_request"
+        ],
+        "missing_slots": [
+          "order_id",
+          "evidence"
+        ],
+        "risk_tags": [
+          "regulatory_or_public_risk",
+          "compensation_or_refund"
+        ],
+        "knowledge_refs": [
+          "KB-002",
+          "KB-013",
+          "KB-019"
+        ],
+        "next_action": "human_handoff",
+        "status": "handoff_pending",
+        "priority": "P0",
+        "risk_level": "high",
+        "evidence_status": "sufficient",
+        "decision_reason": "命中高风险标签，需人工确认赔付、监管或争议边界。"
+      },
+      {
+        "turn": 2,
+        "timestamp": "2026-06-21 03:00:54",
+        "case_id": "CASE-20260621-0004",
+        "provided_slots": [
+          "order_id",
+          "event_time",
+          "customer_request"
+        ],
+        "missing_slots": [
+          "evidence"
+        ],
+        "risk_tags": [],
+        "knowledge_refs": [
+          "KB-009",
+          "KB-026",
+          "KB-021"
+        ],
+        "next_action": "standard_answer",
+        "status": "ai_answered",
+        "priority": "P2",
+        "risk_level": "low",
+        "evidence_status": "sufficient",
+        "decision_reason": "仍缺少必要字段：evidence。"
+      },
+      {
+        "turn": 3,
+        "timestamp": "2026-06-21 03:00:58",
+        "case_id": "CASE-20260621-0004",
+        "provided_slots": [
+          "order_id",
+          "event_time",
+          "customer_request"
+        ],
+        "missing_slots": [
+          "evidence"
+        ],
+        "risk_tags": [
+          "regulatory_or_public_risk",
+          "compensation_or_refund"
+        ],
+        "knowledge_refs": [
+          "KB-002",
+          "KB-025",
+          "KB-024"
+        ],
+        "next_action": "human_handoff",
+        "status": "handoff_pending",
+        "priority": "P0",
+        "risk_level": "high",
+        "evidence_status": "sufficient",
+        "decision_reason": "命中高风险标签，需人工确认赔付、监管或争议边界。"
+      }
+    ],
+    "feedback_events": [
+      {
+        "case_id": "CASE-20260621-0004",
+        "created_at": "2026-06-21 03:00:51",
+        "event_type": "handoff_reason",
+        "source_module": "customer_agent",
+        "description": "转人工原因：风险标签regulatory_or_public_risk、compensation_or_refund。",
+        "root_cause": "policy_unclear",
+        "suggested_action": "确认转人工规则阈值。",
+        "priority": "P0"
+      },
+      {
+        "case_id": "CASE-20260621-0004",
+        "created_at": "2026-06-21 03:00:58",
+        "event_type": "handoff_reason",
+        "source_module": "customer_agent",
+        "description": "转人工原因：风险标签regulatory_or_public_risk、compensation_or_refund。",
+        "root_cause": "policy_unclear",
+        "suggested_action": "确认转人工规则阈值。",
+        "priority": "P0"
+      }
+    ],
+    "human_updates": [],
+    "metrics": {
+      "total_cases": 1,
+      "handoff_count": 2,
+      "auto_resolved": 1,
+      "repeat_count": 0,
+      "knowledge_hit_count": 3,
+      "knowledge_miss_count": 0
+    },
+    "last_customer_msg": "我要求全额退款再加误工费赔偿，否则我就去媒体曝光。"
+  }
+}

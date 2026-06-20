@@ -3,7 +3,7 @@
 Complaint Intelligent Classification & Suggestion System
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek V4 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + pandas + Plotly + Multi-LLM
 """
 
@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 import os
 import json
 import sys
+import re
 
 _SHARED_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if _SHARED_PATH not in sys.path:
@@ -65,7 +66,7 @@ MODELS = {
         "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek V4",
+        "name": "DeepSeek-V3",
         "provider": "DeepSeek",
         "icon": "🐋",
         "model_id": "deepseek-chat",
@@ -186,6 +187,46 @@ def check_ollama_model(model_id="qwen2.5:3b"):
 # ═══════════════════════════════════════════════════════════
 # LLM 分析引擎（统一接口，多模型分发）
 # ═══════════════════════════════════════════════════════════
+
+@st.cache_data(show_spinner=False)
+def load_ai_snapshot():
+    """加载预置 AI 快照（基于真实 DeepSeek 输出）。无文件时返回 None。
+
+    用于无 API key 时仍能展示双引擎对比报告，避免主打卖点演示不出来。
+    """
+    path = os.path.join(os.path.dirname(__file__), "ai_snapshot.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if data.get("results") else None
+    except Exception:
+        return None
+
+
+def apply_ai_snapshot(df, snapshot):
+    """把快照里的 AI 字段按 complaint_id 回填到 df。返回覆盖率(0-1)。"""
+    results = snapshot.get("results", {})
+    id_col = "complaint_id" if "complaint_id" in df.columns else None
+    if not id_col:
+        return 0.0
+    cols = {"AI分类结果": "category", "AI置信度": "confidence", "AI情绪": "sentiment",
+            "AI优先级": "priority", "AI处理建议": "action_recommendation",
+            "LLM分类理由": "reasoning", "是否复合": "is_compound"}
+    matched = 0
+    series = {disp: [] for disp in cols}
+    for _, row in df.iterrows():
+        rec = results.get(str(row[id_col]))
+        if rec:
+            matched += 1
+        for disp, key in cols.items():
+            default = False if key == "is_compound" else (0.0 if key == "confidence" else "")
+            series[disp].append(rec.get(key, default) if rec else default)
+    for disp, vals in series.items():
+        df[disp] = vals
+    return matched / len(df) if len(df) else 0.0
+
 
 def llm_classify(text, model_key, client):
     """使用指定模型进行语义分类"""
@@ -635,7 +676,7 @@ VERSION_HISTORY = [
             "新增 Ollama 本地模型支持（Qwen2.5 3B），完全免费无需 API Key",
             "新增 Gemini 2.0 Flash 模型接入（Google 免费额度）",
             "新增 Groq Llama 3.3 模型接入（免费 30次/分钟）",
-            "保留 DeepSeek V4 模型选项",
+            "保留 DeepSeek-V3 模型选项",
             "侧边栏模型选择器，一键切换四种 AI 引擎",
             "自动检测本地 Ollama 运行状态和模型可用性",
         ],
@@ -647,7 +688,7 @@ VERSION_HISTORY = [
         "date": "2026-05-20",
         "title": "双引擎对比架构",
         "changes": [
-            "接入 DeepSeek V4 实现真正的 LLM 语义分类（替代占位符开关）",
+            "接入 DeepSeek-V3 实现真正的 LLM 语义分类（替代占位符开关）",
             "新增双引擎并排对比模式：关键词规则 vs AI 语义",
             "LLM 生成个性化处理建议（替代固定模板口径）",
             "新增 AI 语义聚类批量异常检测",
@@ -1088,6 +1129,15 @@ def show_batch_analysis(df, model_key, client):
         show_export(df)
 
 
+def _normalize_category(label):
+    """去掉分类名前缀的 emoji/图标，使规则引擎(无图标)与 AI(带图标)可比。
+
+    规则引擎输出如 "退款类"，AI 按 prompt 返回如 "💰 退款类"，直接字符串比较
+    会把同类误判为分歧，使一致率虚低。统一去前缀后再比。
+    """
+    return re.sub(r"^[\W_]+", "", str(label)).strip()
+
+
 def show_comparison_report(df):
     """双引擎对比报告：一致率、分歧分析、置信度分布"""
     st.subheader("双引擎对比分析报告")
@@ -1095,7 +1145,9 @@ def show_comparison_report(df):
     if not has_ai:
         st.info("切换到 AI 引擎后可查看双引擎对比报告")
         return
-    match_mask = df["分类结果"] == df["AI分类结果"]
+    rule_norm = df["分类结果"].map(_normalize_category)
+    ai_norm = df["AI分类结果"].map(_normalize_category)
+    match_mask = rule_norm == ai_norm
     match_rate = match_mask.sum() / len(df) * 100
     divergent = df[~match_mask]
     c1, c2, c3 = st.columns(3)
@@ -1108,7 +1160,7 @@ def show_comparison_report(df):
         low_conf = (df["AI置信度"] < 0.6).sum() if "AI置信度" in df.columns else 0
         st.metric("低置信度(<0.6)", low_conf, delta="模糊地带")
     st.subheader("分类交叉矩阵（规则 vs AI）")
-    cross = pd.crosstab(df["分类结果"], df["AI分类结果"])
+    cross = pd.crosstab(rule_norm, ai_norm)
     fig = px.imshow(cross.values, x=cross.columns, y=cross.index,
                     title="规则引擎 vs AI 引擎分类对比", color_continuous_scale="Blues", text_auto=True)
     st.plotly_chart(fig, width='stretch')
@@ -1425,8 +1477,17 @@ def main():
 
             st.success(f"✅ {config['name']} 分析完成，共处理 {total} 条客诉")
         else:
-            # AI 未就绪——不报错，展示规则结果并引导配置
-            if config["key_required"]:
+            # AI 未就绪——优先用预置快照展示双引擎对比，其次引导配置 key
+            snapshot = load_ai_snapshot()
+            coverage = apply_ai_snapshot(df, snapshot) if snapshot else 0.0
+            if coverage >= 0.9:
+                meta = snapshot.get("_meta", {})
+                st.info(
+                    f"💡 当前未配置 API Key，下方 AI 结果为**预置样例**"
+                    f"（基于真实 {meta.get('model', 'DeepSeek-V3')} 输出，"
+                    f"{meta.get('generated_at', '')} 生成）。配置 Key 后即可实时分析任意数据。"
+                )
+            elif config["key_required"]:
                 st.info(f"💡 **{config['name']}** 需要 API Key 才能启用。当前展示的是**关键词规则引擎**结果。请在侧边栏输入 Key 或切换到「关键词规则引擎」模式。")
             elif selected_model == "ollama-qwen":
                 ollama_running = check_ollama_available()

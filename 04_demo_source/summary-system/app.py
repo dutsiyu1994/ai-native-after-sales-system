@@ -3,7 +3,7 @@
 AI-Powered Summary & Digest System
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek V4 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + Plotly + Multi-LLM
 """
 
@@ -40,7 +40,7 @@ MODELS = {
         "name": "关键词提取引擎", "provider": "内置", "icon": "🔧",
         "model_id": None, "key_required": False, "key_name": None,
         "base_url": None, "sdk_type": "rule",
-        "description": "基于 TextRank 关键词提取 + 模板生成摘要",
+        "description": "基于词频+位置加权的关键词提取 + 模板生成摘要",
         "speed": "⚡ 即时", "cost": "免费",
     },
     "ollama-qwen": {
@@ -50,7 +50,7 @@ MODELS = {
         "description": "本地运行，完全免费", "speed": "🚀 快", "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek V4", "provider": "DeepSeek", "icon": "🐋",
+        "name": "DeepSeek-V3", "provider": "DeepSeek", "icon": "🐋",
         "model_id": "deepseek-chat", "key_required": True, "key_name": "DEEPSEEK_API_KEY",
         "base_url": "https://api.deepseek.com", "sdk_type": "openai",
         "description": "中文能力最强", "speed": "⚡ 较快", "cost": "¥1/百万tokens",
@@ -485,6 +485,33 @@ def llm_summarize(text, model_key, client, amount=None):
         return json.loads(raw)
     except Exception:
         return None
+
+
+@st.cache_data(show_spinner=False)
+def _load_summary_snapshot():
+    """加载预置摘要快照（基于真实 DeepSeek 输出），按原文文本索引。无文件返回 {}。"""
+    path = os.path.join(os.path.dirname(__file__), "ai_snapshot.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("results", {})
+    except Exception:
+        return {}
+
+
+def summarize_or_snapshot(text, model_key, client, amount=None):
+    """有 client 走实时 LLM；无 client 时按原文回退到预置快照。
+
+    返回 (ai_res, is_snapshot)。两者都没有则 (None, False)。
+    """
+    if client:
+        return llm_summarize(text, model_key, client, amount), False
+    res = _load_summary_snapshot().get(text)
+    if res and isinstance(res, dict) and res.get("一句话概述"):
+        return res, True
+    return None, False
 
 # ═══════════════════════════════════════════════════════════
 # 版本历史
@@ -1032,15 +1059,18 @@ def show_single_analysis(data_item, model_key, client):
     # AI 引擎
     ai_res = None
     is_rule = (MODELS[model_key]["sdk_type"] == "rule")
-    if not is_rule and client:
+    used_snapshot = False
+    if not is_rule:
         with st.spinner(f"🤖 {MODELS[model_key]['name']} 生成摘要..."):
-            ai_res = llm_summarize(text, model_key, client, amount)
+            ai_res, used_snapshot = summarize_or_snapshot(text, model_key, client, amount)
 
     # 原文展示
     st.markdown("#### 📄 原始文本")
     with st.container(height=200, border=True):
         st.text(text)
     st.caption(f"原文 {len(text)} 字")
+    if used_snapshot:
+        st.info("💡 当前未配置 API Key，AI 摘要为**预置样例**（基于真实 DeepSeek-V3 输出）。配置 Key 后可实时摘要任意文本。")
 
     if is_rule or not ai_res:
         # 仅规则引擎时：单引擎 + 差异高亮 + 评分
@@ -1106,8 +1136,8 @@ def show_batch_analysis(data_list, model_key, client):
                 row = {"id": item["id"], "type": item.get("type", ""), "原文长度": len(text)}
 
                 ai_res = None
-                if not is_rule and client:
-                    ai_res = llm_summarize(text, model_key, client, amount)
+                if not is_rule:
+                    ai_res, _ = summarize_or_snapshot(text, model_key, client, amount)
 
                 res = ai_res if ai_res else rule_res
                 row["一句话概述"] = res.get("一句话概述", "")[:60]

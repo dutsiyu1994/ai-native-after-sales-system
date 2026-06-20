@@ -14,6 +14,7 @@ import json
 import os as _os
 import re
 import sys
+from copy import deepcopy
 from datetime import datetime
 
 import streamlit as st
@@ -79,7 +80,7 @@ def get_api_key() -> str | None:
 # ---------- LLM provider configs ----------
 LLM_PROVIDERS = {
     "deepseek": {
-        "name": "DeepSeek V4",
+        "name": "DeepSeek-V3",
         "icon": "🐋",
         "model": "deepseek-chat",
         "base_url": "https://api.deepseek.com/v1",
@@ -184,7 +185,57 @@ SESSION_DEFAULTS: dict = {
 
 for key, default in SESSION_DEFAULTS.items():
     if key not in st.session_state:
-        st.session_state[key] = default
+        st.session_state[key] = deepcopy(default)
+
+
+@st.cache_data(show_spinner=False)
+def load_ai_replay() -> dict:
+    """读取预置 AI 回放，让无 Key 场景也能展示完整 case 链路。"""
+    path = _os.path.join(_os.path.dirname(__file__), "ai_replay.json")
+    if not _os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        replay = data.get("replay", {})
+        return replay if isinstance(replay, dict) else {}
+    except Exception:
+        return {}
+
+
+def apply_ai_replay_to_session(replay: dict) -> bool:
+    """把预置回放写入 session_state；失败时保持当前会话不变。"""
+    if not replay:
+        return False
+
+    conversation = replay.get("conversation")
+    case_context = replay.get("case_context")
+    if not isinstance(conversation, list) or not isinstance(case_context, dict):
+        return False
+
+    for key, default in SESSION_DEFAULTS.items():
+        st.session_state[key] = deepcopy(default)
+
+    st.session_state["conversation"] = deepcopy(conversation)
+    st.session_state["slots"] = deepcopy(replay.get("slots") or case_context.get("required_slots") or SESSION_DEFAULTS["slots"])
+    st.session_state["risk_tags"] = deepcopy(replay.get("risk_tags") or case_context.get("risk_tags") or [])
+    st.session_state["current_case_id"] = replay.get("current_case_id") or case_context.get("case_id", "")
+    st.session_state["case_started_at"] = replay.get("case_started_at", "")
+    st.session_state["case_context"] = deepcopy(case_context)
+    st.session_state["state_history"] = deepcopy(case_context.get("state_history") or [])
+
+    next_action = case_context.get("next_action", "")
+    st.session_state["metrics"] = {
+        "total_cases": 1,
+        "handoff_count": 1 if next_action in ("human_handoff", "escalate", "human_followup") else 0,
+        "auto_resolved": 1 if next_action == "standard_answer" else 0,
+        "repeat_count": 0,
+        "knowledge_hit_count": 1 if case_context.get("knowledge_refs") else 0,
+        "knowledge_miss_count": 0 if case_context.get("knowledge_refs") else 1,
+    }
+    st.session_state["last_customer_msg"] = ""
+    st.session_state["last_save_time"] = "预置 AI 回放"
+    return True
 
 
 # ========== helpers ==========
@@ -723,10 +774,20 @@ def render_sidebar():
     if provider == "rule-only":
         st.sidebar.warning("纯规则模式，回复基础。建议选 DeepSeek 并配置 API Key。")
 
+    replay = load_ai_replay()
+    if provider == "deepseek" and not get_api_key() and replay:
+        st.sidebar.info("未配置 API Key，可加载预置 AI 回放查看完整 case 链路。")
+        if st.sidebar.button("加载预置 AI 回放"):
+            if apply_ai_replay_to_session(replay):
+                st.sidebar.success("已加载预置 AI 回放。")
+                st.rerun()
+            else:
+                st.sidebar.error("预置 AI 回放数据不可用。")
+
     st.sidebar.markdown("---")
     if st.sidebar.button("🔄 重置会话"):
         for key in SESSION_DEFAULTS:
-            st.session_state[key] = SESSION_DEFAULTS[key]
+            st.session_state[key] = deepcopy(SESSION_DEFAULTS[key])
         st.rerun()
 
     st.sidebar.metric("总 Case", st.session_state["metrics"]["total_cases"])

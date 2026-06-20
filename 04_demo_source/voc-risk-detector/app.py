@@ -3,7 +3,7 @@ VOC批量异常风险识别与预警系统 v3.2
 VOC Batch Anomaly Detection & Risk Alert System
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek V4 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + scikit-learn + Plotly + Multi-LLM
 """
 
@@ -81,7 +81,7 @@ MODELS = {
         "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek V4",
+        "name": "DeepSeek-V3",
         "provider": "DeepSeek",
         "icon": "🐋",
         "model_id": "deepseek-chat",
@@ -233,7 +233,7 @@ VOC列表：
             r = client.chat.completions.create(
                 model=config["model_id"],
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.2, max_tokens=2000,
+                temperature=0.2, max_tokens=8000,
             )
             raw = r.choices[0].message.content.strip()
         elif config["sdk_type"] == "gemini":
@@ -249,6 +249,29 @@ VOC列表：
         return result if isinstance(result, list) else []
     except Exception:
         return []
+
+
+def load_cluster_snapshot(texts):
+    """加载预置语义聚类快照（基于真实 DeepSeek 输出）。
+
+    仅当输入数据包含快照生成时的锚点文本（即内置样本的三组埋点异常）才返回，
+    避免对用户上传的数据张冠李戴。无文件 / 锚点不匹配时返回 (None, None)。
+    """
+    path = os.path.join(os.path.dirname(__file__), "ai_snapshot.json")
+    if not os.path.exists(path):
+        return None, None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        anchors = data.get("_meta", {}).get("anchors", [])
+        if not anchors:
+            return None, None
+        corpus = set(texts)
+        if all(a in corpus for a in anchors):
+            return data.get("clusters", []), data.get("_meta", {})
+        return None, None
+    except Exception:
+        return None, None
 
 
 # ═══════════════════════════════════════════════════════════
@@ -541,7 +564,7 @@ VERSION_HISTORY = [
         "changes": [
             "新增 Ollama Qwen2.5 本地模型支持（免费，无需 Key）",
             "新增 Gemini 2.0 Flash / Groq Llama 3.3 免费 API 选项",
-            "新增 DeepSeek V4 选项",
+            "新增 DeepSeek-V3 选项",
             "新增 AI 语义聚类引擎，替代纯统计聚类",
             "新增 AI 预警建议生成（根因分析+响应方案）",
             "侧边栏模型选择器，一键切换引擎",
@@ -624,13 +647,34 @@ def generate_sample_data():
         "物流信息三天没更新了不知道货到哪了",
         "买之前咨询客服态度很好售后就变了",
         "收到的颜色和图片差太多了",
+        "下单时备注了不要折叠结果还是压坏了",
+        "申请的换货迟迟没人处理，催了两次了",
+        "赠品没有一起发货，问客服也没给说法",
+        "商品页面写的是顺丰实际发的是其他快递",
+        "尺码表完全不准，按推荐买大了一码",
+        "想取消订单结果显示已发货取消不了",
+        "保价的商品坏了理赔流程特别麻烦",
+        "活动价下单后又涨回去了感觉被套路",
+        "客服一直让我等系统处理但等了三天没动静",
+        "拆开发现是临期商品保质期只剩半个月",
+        "预售商品一拖再拖发货时间改了三次",
+        "买的家电没有保修卡也没有发票",
+        "退货退款审核太久钱一直压着",
+        "商品有色差客服说显示器问题不给退",
+        "包装箱里少了配件螺丝都没给齐",
     ]
+    # 语气前缀 / 补充后缀，制造自然语言多样性，避免逐字重复
+    prefixes = ["", "", "说实话，", "真的无语，", "我想问下，", "麻烦了，",
+                "第一次遇到这种情况，", "已经是第二次了，", "客观说，"]
+    suffixes = ["", "", "，希望能尽快处理", "，请给个说法", "，有点影响心情",
+                "，下次不敢买了", "，麻烦核实一下", "，谢谢", "，已经申请售后了"]
     for i in range(164):
         day = np.random.randint(1, 31)
         date = f"2026-04-{day:02d}"
         template = np.random.choice(normal_templates)
+        text = np.random.choice(prefixes) + template + np.random.choice(suffixes)
         amount = np.random.choice([39, 68, 99, 129, 188, 259, 329, 399, 459, 599])
-        records.append([f"N{i:03d}", template, amount, date])
+        records.append([f"N{i:03d}", text, amount, date])
 
     # 批量异常1：银饰品材质不符
     silver = [
@@ -1176,7 +1220,8 @@ def show_voc_results(df, stat_clusters, time_anomalies, ai_clusters, model_key, 
             if not ap.empty:
                 fig.add_trace(go.Scatter(x=ap["date"], y=ap["count"], mode="markers", name="异常点",
                                          marker=dict(color="#FF0000", size=12, symbol="x")))
-            # 趋势预测
+            # 趋势外推（朴素线性，仅供演示）：取最近3天斜率线性延伸，
+            # 波动带为经验值 ±30%，非统计意义上的置信区间。
             if len(dc) >= 3:
                 last_vals = dc["count"].tail(3).tolist()
                 last_ma = dc["MA"].iloc[-1]
@@ -1187,13 +1232,13 @@ def show_voc_results(df, stat_clusters, time_anomalies, ai_clusters, model_key, 
                 pred_vals = [last_ma + slope * i for i in range(1, 4)]
                 pred_upper = [v * 1.3 for v in pred_vals]
                 pred_lower = [v * 0.7 for v in pred_vals]
-                fig.add_trace(go.Scatter(x=pred_dates, y=pred_vals, mode="lines+markers", name="趋势预测",
+                fig.add_trace(go.Scatter(x=pred_dates, y=pred_vals, mode="lines+markers", name="趋势外推(朴素)",
                                          line=dict(color="#FF9800", width=2, dash="dot"),
                                          marker=dict(size=8, symbol="diamond")))
                 fig.add_trace(go.Scatter(x=pred_dates + pred_dates[::-1], y=pred_upper + pred_lower[::-1],
                                          fill="toself", fillcolor="rgba(255,152,0,0.12)", line=dict(width=0),
-                                         name="预测区间"))
-                pred_note = f"若趋势持续，预计 {pred_dates[-1]} 日 VOC 量约 {pred_vals[-1]:.0f} 条"
+                                         name="经验波动带(±30%)"))
+                pred_note = f"按最近趋势线性外推，预计 {pred_dates[-1]} 日 VOC 量约 {pred_vals[-1]:.0f} 条（朴素外推，仅供参考）"
                 st.info(f"📈 {pred_note}")
 
             fig.update_layout(height=400, title="VOC日趋势与异常检测", hovermode="x unified")
@@ -1216,11 +1261,23 @@ def show_voc_results(df, stat_clusters, time_anomalies, ai_clusters, model_key, 
         st.caption("基于 TF-IDF 聚类 + 敏感词匹配 + 时间增幅的规则引擎预警")
         kw_alerts = []
         min_sz = st.session_state.get("alert_min_cluster_size", 3)
+        # 时间异常按"日期"维度产出，聚类按"主题"维度产出；
+        # 通过聚类成员文档的发生日期与异常日期取交集来关联时间增幅。
+        anomaly_ratio_by_date = {a["date"]: a["ratio"] for a in time_anomalies}
+        cluster_dates = None
+        if anomaly_ratio_by_date and "create_time" in df.columns:
+            cluster_dates = pd.to_datetime(df["create_time"], errors="coerce").dt.date
         for c in stat_clusters:
             if c["size"] < min_sz:
                 continue
             hs = any(check_sensitive(df["voc_text"].iloc[i]) for i in c["indices"])
-            tr = next((a["ratio"] for a in time_anomalies if str(a.get("label", "")) == str(c["cluster_id"])), None)
+            tr = None
+            if cluster_dates is not None:
+                member_ratios = [anomaly_ratio_by_date[d]
+                                 for i in c["indices"]
+                                 if (d := cluster_dates.iloc[i]) in anomaly_ratio_by_date]
+                if member_ratios:
+                    tr = max(member_ratios)
             lv, col = assess_alert_level(c["size"], tr, hs)
             if lv == "⚪ 无预警":
                 continue
@@ -1358,7 +1415,16 @@ def main():
             else:
                 st.info(f"💡 AI 未发现额外异常事件，统计引擎结果如下")
         else:
-            if cfg["key_required"]:
+            # 无 key：优先用预置快照展示 AI 语义聚类，其次引导配置
+            snap_clusters, snap_meta = load_cluster_snapshot(df["voc_text"].tolist())
+            if snap_clusters:
+                ai_clusters = snap_clusters
+                st.info(
+                    f"💡 当前未配置 API Key，下方 AI 语义聚类为**预置样例**"
+                    f"（基于真实 {snap_meta.get('model', 'DeepSeek-V3')} 输出，"
+                    f"{snap_meta.get('generated_at', '')} 生成）。配置 Key 后可实时分析任意数据。"
+                )
+            elif cfg["key_required"]:
                 st.info(f"💡 {cfg['name']} 需要 API Key。当前展示统计引擎结果。")
             elif selected_model == "ollama-qwen":
                 if not check_ollama_available():

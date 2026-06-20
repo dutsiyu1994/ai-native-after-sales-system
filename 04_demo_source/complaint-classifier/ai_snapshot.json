@@ -1,0 +1,1075 @@
+{
+  "_meta": {
+    "model": "DeepSeek-V3 (deepseek-chat)",
+    "generated_at": "2026-06-19",
+    "sample_count": 66,
+    "failed": 0,
+    "note": "基于真实 DeepSeek 输出的预置样例，供无 API key 时演示双引擎对比"
+  },
+  "results": {
+    "R001": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "穿一次起球属于典型面料质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "衣服",
+        "起球",
+        "退款"
+      ],
+      "action_recommendation": "先致歉，说明起球原因，主动提供退货退款或换货方案，同步加强面料质检流程。"
+    },
+    "R002": {
+      "category": "💰 退款类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P2-普通",
+      "reasoning": "用户明确要求退钱，属于退款诉求",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "耳机",
+        "坏了",
+        "退钱"
+      ],
+      "action_recommendation": "安抚用户情绪，核实订单信息，确认商品是否在质保期内，引导用户提供故障证据，按平台规则处理退货退款。"
+    },
+    "R003": {
+      "category": "💰 退款类",
+      "confidence": 0.92,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "消费者明确要求退款赔偿，属于退款类投诉",
+      "is_compound": true,
+      "compound_types": [
+        "💰 退款类",
+        "⚠️ 商品质量类"
+      ],
+      "keywords_extracted": [
+        "护肤品",
+        "过敏",
+        "脸红",
+        "退款",
+        "赔偿"
+      ],
+      "action_recommendation": "立即安抚客户情绪，致歉并了解过敏严重程度，要求提供过敏照片及购买凭证，启动退货退款流程，必要时协助就医并承担合理医疗费用。"
+    },
+    "R004": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "手表不走针属于明显质量问题，消费者要求退一赔三",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "手表",
+        "不走针",
+        "次品",
+        "退一赔三"
+      ],
+      "action_recommendation": "立即联系消费者致歉，核实订单信息，安排退货退款并承担运费，同时按平台规则评估是否支持赔偿诉求，避免升级投诉。"
+    },
+    "R005": {
+      "category": "💰 退款类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "用户明确要求退货退款，属于退款类投诉",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "鞋子码数不对",
+        "退货退款",
+        "客服不处理"
+      ],
+      "action_recommendation": "立即联系用户致歉，核实订单信息，优先安排退货退款流程，并反馈客服处理不及时问题，加强内部跟进机制。"
+    },
+    "R006": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "投诉五金件掉色，属于商品质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "五金件掉色",
+        "质量差",
+        "退款"
+      ],
+      "action_recommendation": "致歉并核实掉色情况，若属实立即安排退货退款，可提供优惠券补偿，强调加强品控。"
+    },
+    "R007": {
+      "category": "💰 退款类",
+      "confidence": 0.9,
+      "sentiment": "愤怒",
+      "priority": "P0-紧急",
+      "reasoning": "用户明确要求退款，并提及申请被拒",
+      "is_compound": true,
+      "compound_types": [
+        "💰 退款类",
+        "⚠️ 商品质量类"
+      ],
+      "keywords_extracted": [
+        "电饭煲",
+        "不到一个月",
+        "坏了",
+        "退款被拒",
+        "12315投诉"
+      ],
+      "action_recommendation": "优先安抚用户情绪，核实商品质量问题，主动联系用户协商退款或换货，避免升级至12315投诉。"
+    },
+    "R008": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.9,
+      "sentiment": "平静",
+      "priority": "P2-普通",
+      "reasoning": "蓝牙连不上手机属于功能故障，归为商品质量类",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "蓝牙音箱",
+        "连不上",
+        "退货退款",
+        "寄回"
+      ],
+      "action_recommendation": "确认退货已签收，尽快办理退款并告知用户退款到账时间。若商品需检测，提前说明流程。"
+    },
+    "R009": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.92,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "临期食品未标注，属于商品描述不符问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "保质期",
+        "一周过期",
+        "未标注",
+        "退款"
+      ],
+      "action_recommendation": "优先安抚客户情绪，承认商家未标注临期食品的失误，立即办理退款或换货，并承诺加强商品信息审核，避免再次发生。"
+    },
+    "R010": {
+      "category": "💰 退款类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "消费者因剪吊牌后无法退货，要求退款被拒，核心诉求为退款退货",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "吊牌剪了",
+        "穿不了",
+        "商家不给退",
+        "合理吗"
+      ],
+      "action_recommendation": "建议安抚客户情绪，解释剪吊牌影响二次销售通常不支持无理由退货，但可协商换货或部分退款，若商品存在质量问题则需特殊处理。"
+    },
+    "L001": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "物流信息停滞且快递员失联，核心是配送问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "物流信息未更新",
+        "快递员电话打不通",
+        "已发货"
+      ],
+      "action_recommendation": "立即联系快递公司核实物流异常原因，催促更新轨迹或重新派送；同步安抚客户，告知预计处理时间，提供补发或退款选项作为备选方案。"
+    },
+    "L002": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "投诉核心是订单未发货，属于物流配送环节问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "未发货",
+        "催发货",
+        "一周"
+      ],
+      "action_recommendation": "立即核实订单状态，向消费者致歉并说明延迟原因，承诺具体发货时间或提供补偿方案，如优惠券或加急配送。"
+    },
+    "L003": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "核心问题是快递丢失，属于物流配送环节投诉",
+      "is_compound": true,
+      "compound_types": [
+        "😠 服务态度类"
+      ],
+      "keywords_extracted": [
+        "快递丢失",
+        "推卸责任",
+        "商家"
+      ],
+      "action_recommendation": "先安抚客户情绪，明确商家有责任协助处理物流问题。建议商家先行赔付或主动联系快递公司追责，避免客户自行对接。"
+    },
+    "L004": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "商品因物流延迟导致变质，核心是质量问题",
+      "is_compound": true,
+      "compound_types": [
+        "📦 物流类",
+        "⚠️ 商品质量类"
+      ],
+      "keywords_extracted": [
+        "生鲜食品",
+        "快递慢",
+        "两天",
+        "臭了"
+      ],
+      "action_recommendation": "立即致歉并优先退款或补发，同时核查物流环节，优化生鲜配送时效，避免类似问题。"
+    },
+    "L005": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "客诉明确提及货物卡在海关，属于物流配送环节问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "海外购",
+        "海关",
+        "卡半个月"
+      ],
+      "action_recommendation": "立即查询海关清关进度，向客户致歉并说明预计放行时间，提供物流跟踪链接，必要时协助提交补充材料。"
+    },
+    "L006": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "明确抱怨同城快递配送时效过长",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "同城快递",
+        "三天",
+        "效率低"
+      ],
+      "action_recommendation": "立即核实物流轨迹，联系配送站点确认延误原因，向客户致歉并说明预计送达时间，可提供小额优惠券安抚情绪。"
+    },
+    "L007": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P2-普通",
+      "reasoning": "用户填错地址，快递已发出，核心是物流配送问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "填错地址",
+        "快递已发出"
+      ],
+      "action_recommendation": "建议用户联系快递公司尝试拦截或改址，同时联系商家协助处理。安抚用户情绪，说明拦截成功率和后续流程。"
+    },
+    "L008": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "投诉快递员未按约定放置包裹且未发送取件码",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "快递员",
+        "未经同意",
+        "放快递柜",
+        "取件码未发"
+      ],
+      "action_recommendation": "立即联系快递员核实情况，向客户致歉并补发取件码或重新派送。同时加强快递员培训，要求必须征得客户同意后再放快递柜。"
+    },
+    "Q001": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "消费者明确投诉商品颜色与图片不符，属于描述不符问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "手机壳",
+        "图片不一样",
+        "颜色差很多",
+        "虚假宣传"
+      ],
+      "action_recommendation": "建议先安抚客户情绪，致歉并解释色差原因，主动提供退货退款或换货方案，同时核查商品页面图片是否过度美化，及时修正。"
+    },
+    "Q002": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "消费者反馈奶粉有怪味，怀疑假货，属于商品质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "奶粉",
+        "怪味",
+        "假货",
+        "不敢喝"
+      ],
+      "action_recommendation": "立即安抚客户情绪，承诺安排质检或退换货，提供正品溯源证明，消除疑虑，避免舆情扩散。"
+    },
+    "Q003": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "消费者投诉布料厚度与描述不符，属于商品质量或描述不符问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "窗帘布料",
+        "厚度不符",
+        "太薄"
+      ],
+      "action_recommendation": "建议主动联系消费者致歉，提供退货退款或换货方案，并核实商品页面描述是否准确，避免再次出现类似问题。"
+    },
+    "Q004": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "客诉明确反映鞋底开胶，属于商品质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "运动鞋",
+        "鞋底开胶",
+        "质量差",
+        "一周"
+      ],
+      "action_recommendation": "建议优先安抚客户情绪，核实购买时间，若确属一周内质量问题，主动提供退货或换货方案，并致歉说明将加强品控。"
+    },
+    "Q005": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "客诉明确提及色差和面料不符，属于商品描述不符问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "色差",
+        "面料不符",
+        "描述不一致"
+      ],
+      "action_recommendation": "建议优先安抚客户情绪，致歉并核实商品实拍图与描述差异，主动提供退货退款或换货方案，同步优化商品详情页描述准确性。"
+    },
+    "Q006": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "容量虚标属于商品质量与描述不符",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "充电宝",
+        "容量虚标",
+        "标注20000",
+        "实际不到5000"
+      ],
+      "action_recommendation": "立即核实产品容量，安排退货退款并向客户致歉，同时排查同批次商品是否存在批量问题，必要时下架整改。"
+    },
+    "Q007": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "投诉核心是茶叶霉味和陈茶翻新，属于商品质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "茶叶",
+        "霉味",
+        "陈茶翻新",
+        "包装精美"
+      ],
+      "action_recommendation": "立即联系消费者致歉，安排退货退款并承担运费；对同批次茶叶进行质检，排查仓储条件；若确属陈茶翻新，需对供应商追责并整改品控流程。"
+    },
+    "S001": {
+      "category": "😠 服务态度类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "客户明确投诉客服态度差、不耐烦并挂断电话",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "客服态度极差",
+        "不耐烦",
+        "挂断"
+      ],
+      "action_recommendation": "立即致歉并安抚客户情绪，核实通话录音后对涉事客服进行培训或处罚，承诺改进服务，可赠送优惠券挽回信任。"
+    },
+    "S002": {
+      "category": "😠 服务态度类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "投诉客服多次机器人回复，无人理睬，属服务态度问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "联系客服",
+        "机器人回复",
+        "没人理"
+      ],
+      "action_recommendation": "立即安排人工客服主动回电致歉，说明机器人回复原因，承诺优先处理后续问题，并记录该用户为高敏感客户，避免再次触发自动回复。"
+    },
+    "S003": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.92,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "消费者明确反映质量问题，商家推诿责任",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "商家推诿",
+        "质量问题",
+        "自己弄坏"
+      ],
+      "action_recommendation": "建议客服主动联系消费者，要求商家提供质检证明或双方认可的第三方检测，若确属质量问题，立即安排退货退款并致歉，避免升级投诉。"
+    },
+    "S004": {
+      "category": "😠 服务态度类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "客服承诺回电但未履行，属于服务承诺未兑现",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "客服",
+        "回电",
+        "两天",
+        "没有消息"
+      ],
+      "action_recommendation": "立即致电客户致歉，说明未回电原因并给出明确回电时间，同时加强客服承诺履行监督，避免再次发生。"
+    },
+    "S005": {
+      "category": "😠 服务态度类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P0-紧急",
+      "reasoning": "明确投诉客服经理态度更差，并威胁曝光",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "投诉客服经理",
+        "态度更差",
+        "曝光到网上"
+      ],
+      "action_recommendation": "立即联系客户致歉，承诺调查并严肃处理涉事经理，避免舆情扩散。沟通口径：非常抱歉给您带来不愉快，我们已记录并会严肃处理，请您给我们一次改进机会。"
+    },
+    "S006": {
+      "category": "😠 服务态度类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "投诉客服转接多次且需重复描述问题，属于服务流程体验差",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "转接",
+        "重复描述",
+        "体验差"
+      ],
+      "action_recommendation": "立即致歉并记录客户问题，承诺优化转接流程，避免重复描述；升级为专人跟进，一次性解决诉求。"
+    },
+    "O001": {
+      "category": "其他",
+      "confidence": 0.95,
+      "sentiment": "平静",
+      "priority": "P2-普通",
+      "reasoning": "用户咨询下单后修改地址，属操作指导类问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "修改收货地址",
+        "已下单"
+      ],
+      "action_recommendation": "引导用户提供订单号，查询订单状态。若未发货可协助修改地址；若已发货则建议联系快递转寄或拦截。沟通口径：'亲，请提供订单号，我帮您查看能否修改地址。'"
+    },
+    "O002": {
+      "category": "其他",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P2-普通",
+      "reasoning": "用户反映优惠券使用问题，不涉及退款、物流、质量或服务态度",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "优惠券",
+        "用不了",
+        "不符合条件"
+      ],
+      "action_recommendation": "请用户提供优惠券编号及订单信息，核实优惠券使用规则（如门槛、商品范围、有效期），告知具体不符合条件的原因，并引导用户使用其他可用优惠。"
+    },
+    "O003": {
+      "category": "其他",
+      "confidence": 0.95,
+      "sentiment": "平静",
+      "priority": "P2-普通",
+      "reasoning": "用户仅需联系商家确认尺码，非退款/物流/质量/态度问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "联系商家",
+        "确认尺码",
+        "发货"
+      ],
+      "action_recommendation": "请客服主动联系用户，提供商家联系方式或代为转达尺码确认需求，确认后安排发货，避免因沟通不畅导致退货。"
+    },
+    "O004": {
+      "category": "其他",
+      "confidence": 0.95,
+      "sentiment": "平静",
+      "priority": "P2-普通",
+      "reasoning": "用户仅咨询发票开具方式，不涉及退款、物流、质量或服务态度",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "发票",
+        "电子发票"
+      ],
+      "action_recommendation": "引导用户进入订单详情页或设置中心，点击‘申请发票’选择电子发票，并说明预计发送时间。"
+    },
+    "O005": {
+      "category": "其他",
+      "confidence": 0.95,
+      "sentiment": "平静",
+      "priority": "P2-普通",
+      "reasoning": "消费者询问活动规则，非退款/物流/质量/服务态度问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "满减活动",
+        "规则",
+        "页面不清楚"
+      ],
+      "action_recommendation": "建议客服主动联系消费者，清晰解释满减规则，并优化页面活动说明，避免后续类似咨询。"
+    },
+    "B1-01": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "投诉核心为银手镯纯度与描述严重不符，属于商品质量/描述不符",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银手镯",
+        "999纯银",
+        "含银量",
+        "欺诈"
+      ],
+      "action_recommendation": "立即核实商品检测报告，若属实按假货处理，主动联系消费者致歉并启动退货退款及赔偿方案，同步下架该商品并处罚商家。"
+    },
+    "B1-02": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "掉色严重、非纯银，属于商品质量与描述不符",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银项链",
+        "掉色",
+        "脖子绿了",
+        "非纯银"
+      ],
+      "action_recommendation": "致歉并解释掉色原因，提供退货退款或换货方案，建议检测材质并优化商品描述，避免再次投诉。"
+    },
+    "B1-03": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.92,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "消费者质疑商品材质真实性，属于质量与描述不符",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "S925银戒指",
+        "发黑",
+        "假的"
+      ],
+      "action_recommendation": "安抚客户情绪，解释银饰氧化属正常现象，提供保养方法；若客户坚持假货，可引导送检或提供正规渠道购买凭证，协商退换货方案。"
+    },
+    "B1-04": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "消费者质疑银耳钉有铜锈味，怀疑材质不符，属于商品质量投诉",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银耳钉",
+        "铜锈味",
+        "退货退款"
+      ],
+      "action_recommendation": "先安抚客户情绪，致歉并解释银饰品可能出现氧化或加工残留气味，建议客户提供照片或视频，核实后立即安排退货退款，并承担运费，提升信任。"
+    },
+    "B1-05": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "投诉核心是商品氧化斑点，属于质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银饰",
+        "氧化斑点",
+        "忽悠"
+      ],
+      "action_recommendation": "建议优先安抚客户情绪，承认氧化属质量问题，提供退货或换货方案，并加强售前质检与描述说明。"
+    },
+    "B1-06": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P0-紧急",
+      "reasoning": "消费者投诉材质与标注不符，属于商品质量/描述不符问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "S925",
+        "铜镀银",
+        "假冒伪劣",
+        "315举报"
+      ],
+      "action_recommendation": "立即联系消费者致歉，核实商品并安排退货退款，同时启动内部质检流程，主动提供赔偿方案，避免升级至315举报。"
+    },
+    "B1-07": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "材质与详情页不符且证书造假，属于描述不符",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银项链",
+        "材质不符",
+        "证书假",
+        "坑人"
+      ],
+      "action_recommendation": "立即核实商品材质及证书真伪，若属实，主动致歉并全额退款，下架该商品，对商家进行处罚。沟通口径：非常抱歉给您带来糟糕体验，我们已核实并启动退款，同时将严肃处理商家。"
+    },
+    "B1-08": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "商品掉色且材质与描述不符，属于质量缺陷",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银耳环",
+        "掉色",
+        "红色",
+        "铜的"
+      ],
+      "action_recommendation": "立即致歉并核实商品材质，若确为铜镀银则按假货处理，提供全额退款或换货，并赠送优惠券安抚情绪。"
+    },
+    "B1-09": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.92,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "买家反映材质不符，属商品质量/描述不符投诉",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银饰",
+        "材质不符",
+        "商家黑",
+        "平台不管"
+      ],
+      "action_recommendation": "立即核实该商家多起材质不符投诉，要求提供材质检测报告；若属实，按平台规则下架商品并处罚商家，同时向投诉用户致歉并告知处理进展。"
+    },
+    "B1-10": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "用户投诉银饰材质不符，属于商品描述与实物不一致",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银饰",
+        "材质不符",
+        "管管"
+      ],
+      "action_recommendation": "建议平台立即核查该商家商品详情页，对材质不符问题启动专项抽检，并联系用户致歉，承诺加强监管，同时通报处理结果以安抚情绪。"
+    },
+    "B1-11": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "商品材质与描述不符，导致过敏，属质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "S925银饰",
+        "不是银的",
+        "过敏",
+        "起疹子",
+        "退款",
+        "赔偿"
+      ],
+      "action_recommendation": "优先安抚客户情绪，致歉并核实商品材质，若确属虚假宣传，立即安排全额退款并承担医疗费用，给予适当补偿，同时下架该商品自查。"
+    },
+    "B1-12": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P0-紧急",
+      "reasoning": "投诉明确指控纯银虚假宣传、材质检测不合格",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "银饰手镯",
+        "纯银",
+        "虚假宣传",
+        "材质检测",
+        "彻查"
+      ],
+      "action_recommendation": "立即联系消费者获取检测报告，启动内部质检复核，暂停涉事商家销售权限，并同步平台风控部门排查同类商品。"
+    },
+    "B2-01": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "投诉核心是物流配送时效过长，属于物流类问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "台湾集运",
+        "包裹",
+        "一个月",
+        "物流中转"
+      ],
+      "action_recommendation": "立即查询物流中转详情，向客户致歉并说明原因，提供预计送达时间或补偿方案，如优惠券或运费减免，安抚客户情绪。"
+    },
+    "B2-02": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "包裹卡在中转站不动，属于物流配送问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "集运包裹",
+        "中转站",
+        "不动",
+        "客服联系不上",
+        "货在哪"
+      ],
+      "action_recommendation": "立即查询中转站物流轨迹，联系承运商确认异常原因，主动回电客户说明情况并给出预计解决时间，安抚情绪。"
+    },
+    "B2-03": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "明确提及物流更新停滞，属于物流配送问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "台湾流向",
+        "集运订单",
+        "20多天",
+        "物流未更新"
+      ],
+      "action_recommendation": "立即核查该订单物流轨迹，联系承运商确认包裹状态，主动向客户致歉并说明原因，提供预计更新或解决方案，安抚客户情绪。"
+    },
+    "B2-04": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "客诉明确提及包裹积压和运力不足，属于物流配送问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "集运包裹",
+        "积压",
+        "运力不够",
+        "解决方案"
+      ],
+      "action_recommendation": "立即联系物流公司核实积压原因及预计时效，向客户致歉并说明当前处理进展，提供加急或转运方案，同步承诺跟进反馈。"
+    },
+    "B2-05": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "明确提及物流超30天未送达，属物流配送投诉",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "集运台湾",
+        "物流超过30天",
+        "多次电话",
+        "处理中"
+      ],
+      "action_recommendation": "立即核查物流轨迹并联系集运商确认延误原因，向客户致歉并给出明确处理时效，如超时未更新可提供补偿方案。"
+    },
+    "B2-06": {
+      "category": "📦 物流类",
+      "confidence": 0.92,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "包裹异常且客服协调无进展，核心是物流问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "集运包裹",
+        "显示异常",
+        "协调",
+        "一周没进展"
+      ],
+      "action_recommendation": "立即升级工单至物流专项组，48小时内反馈具体异常原因及预计解决时间，主动致电客户致歉并说明进展，避免客户升级投诉。"
+    },
+    "B2-07": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "焦虑",
+      "priority": "P1-重要",
+      "reasoning": "投诉集运商恢复时间，影响订单配送",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "台湾集运商",
+        "恢复",
+        "订单",
+        "节日礼物"
+      ],
+      "action_recommendation": "立即核实集运商恢复时间，主动告知用户预计时效，提供加急或替代配送方案，安抚用户节日礼物需求，承诺优先处理。"
+    },
+    "B2-08": {
+      "category": "📦 物流类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "客诉明确提及物流积压及通知缺失，属物流配送问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "物流积压",
+        "主动通知",
+        "消费者"
+      ],
+      "action_recommendation": "立即向消费者致歉并说明物流积压原因，主动提供预计配送时间及补偿方案（如优惠券），同时优化物流异常主动通知机制。"
+    },
+    "B3-01": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "纸尿裤导致红屁股，且同批次多人反映，属质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "纸尿裤",
+        "红屁股",
+        "同一批次",
+        "多个妈妈"
+      ],
+      "action_recommendation": "立即联系消费者致歉，安排退货退款并承担运费；同步下架同批次产品送检，排查原因；主动联系其他投诉妈妈统一处理，避免舆情扩散。"
+    },
+    "B3-02": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "用户明确反映纸尿裤吸水性差、侧漏，属于商品质量缺陷",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "纸尿裤",
+        "质量",
+        "吸水性差",
+        "侧漏"
+      ],
+      "action_recommendation": "立即致歉并安排退换货或退款，同时将问题反馈至品控部门核查该批次产品，避免同类投诉扩大。"
+    },
+    "B3-03": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "刺鼻塑料味属明显质量问题，怀疑原材料不合格",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "婴幼儿纸尿裤",
+        "刺鼻塑料味",
+        "不敢用",
+        "问题原材料"
+      ],
+      "action_recommendation": "立即安抚客户情绪，安排退货退款并承担运费；同步启动内部质检，核查该批次原材料报告，48小时内反馈处理结果，避免舆情扩散。"
+    },
+    "B3-04": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "描述纸尿裤粘连处易断开，属于商品质量问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "纸尿裤",
+        "粘连处",
+        "断开",
+        "宝宝",
+        "同品牌"
+      ],
+      "action_recommendation": "致歉并核实批次差异，提供退换货或补偿方案，承诺加强品控，安抚用户情绪。"
+    },
+    "B3-05": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "红屁股和颗粒物表明商品质量或材质问题",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "红屁股",
+        "颗粒物",
+        "粗糙"
+      ],
+      "action_recommendation": "立即致歉并安抚用户，安排退换货或退款，同时将问题反馈质检部门排查颗粒物来源，避免同类投诉扩大。"
+    },
+    "B3-06": {
+      "category": "⚠️ 商品质量类",
+      "confidence": 0.92,
+      "sentiment": "愤怒",
+      "priority": "P2-普通",
+      "reasoning": "投诉纸尿裤变薄，属于商品质量或描述不符",
+      "is_compound": false,
+      "compound_types": [],
+      "keywords_extracted": [
+        "纸尿裤",
+        "偷工减料",
+        "变薄",
+        "价格没变",
+        "割韭菜"
+      ],
+      "action_recommendation": "建议先安抚客户情绪，解释批次差异原因，提供退换货或补偿方案，如赠送优惠券或部分退款，避免升级投诉。"
+    },
+    "M001": {
+      "category": "💰 退款类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "消费者明确要求退款，因商品为假货",
+      "is_compound": true,
+      "compound_types": [
+        "💰 退款类",
+        "⚠️ 商品质量类",
+        "😠 服务态度类"
+      ],
+      "keywords_extracted": [
+        "银手镯",
+        "纯银",
+        "假货",
+        "退款",
+        "客服不理人",
+        "核实三天"
+      ],
+      "action_recommendation": "立即联系消费者致歉，核实商品真伪，若确为假货优先退款并补偿，同时升级客服处理时效，避免再次拖延。"
+    },
+    "M002": {
+      "category": "💰 退款类",
+      "confidence": 0.9,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "用户明确要求理赔，属于退款赔偿诉求",
+      "is_compound": true,
+      "compound_types": [
+        "💰 退款类",
+        "📦 物流类",
+        "😠 服务态度类"
+      ],
+      "keywords_extracted": [
+        "台湾集运",
+        "丢件",
+        "理赔",
+        "推三阻四",
+        "物流慢",
+        "服务差"
+      ],
+      "action_recommendation": "优先安抚客户情绪，致歉并承诺加急处理丢件理赔，同步核查物流轨迹，明确赔偿方案与时效，避免升级投诉。"
+    },
+    "M003": {
+      "category": "💰 退款类",
+      "confidence": 0.95,
+      "sentiment": "愤怒",
+      "priority": "P1-重要",
+      "reasoning": "消费者明确要求退货退款，核心诉求为退款",
+      "is_compound": true,
+      "compound_types": [
+        "⚠️ 商品质量类",
+        "😠 服务态度类"
+      ],
+      "keywords_extracted": [
+        "纸尿裤",
+        "质量有问题",
+        "红屁股",
+        "退货退款",
+        "客服态度恶劣"
+      ],
+      "action_recommendation": "优先安抚客户情绪，致歉并核实商品质量问题，若属实立即安排退货退款并补偿，同时内部处理客服态度问题。"
+    },
+    "M004": {
+      "category": "💰 退款类",
+      "confidence": 0.92,
+      "sentiment": "愤怒",
+      "priority": "P0-紧急",
+      "reasoning": "消费者要求赔偿，商家和物流推诿，核心诉求是退款赔偿",
+      "is_compound": true,
+      "compound_types": [
+        "💰 退款类",
+        "📦 物流类"
+      ],
+      "keywords_extracted": [
+        "快递摔坏",
+        "平板屏幕碎了",
+        "赔偿",
+        "互相推卸责任",
+        "小红书曝光"
+      ],
+      "action_recommendation": "立即安抚客户情绪，承诺48小时内核实并解决赔偿问题，避免舆情扩散。主动协调商家和物流方，明确责任方并先行垫付赔偿。"
+    }
+  }
+}

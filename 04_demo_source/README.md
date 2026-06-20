@@ -12,12 +12,7 @@
 | 智能总结概要 | `D:\job3.0\04_demo_source\summary-system` | 8504 |
 | RAG 知识库问答 | `D:\job3.0\04_demo_source\service-rag-demo` | 8505 |
 | AI native 售后服务系统控制台/门户 | `D:\job3.0\04_demo_source\ai-assistant-portal` | 8506 |
-
-## 规划模块
-
-| 模块 | 目标路径 | 建议端口 | 说明 |
-| --- | --- | --- | --- |
-| 对客沟通智能体 | `D:\job3.0\04_demo_source\customer-agent-demo` | 8507 | 作为售后服务系统的信息输入端，承接真实对客沟通、多轮补槽、风险识别和人工交接。线上入口当前使用 `https://customer-agent-demo.streamlit.app`。 |
+| 对客沟通机器人 | `D:\job3.0\04_demo_source\customer-agent-demo` | 8507 |
 
 ## 线上入口
 
@@ -25,6 +20,10 @@
 | --- | --- |
 | 系统总入口：AI native 售后服务系统控制台/门户 | `https://ai-native-system-msydemo.streamlit.app` |
 | 对客沟通机器人 | `https://customer-agent-demo.streamlit.app` |
+
+## 已舍弃方案
+
+- `ai-native-single-app` 8 合 1 单入口方案已舍弃，不再作为当前 demo 优化方向；历史草案已归档到 `D:\job3.0\99_归档_旧项目材料\ai-native-single-app_已舍弃_20260617`。
 
 ## 启动方式
 

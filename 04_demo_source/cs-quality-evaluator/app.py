@@ -3,7 +3,7 @@ AI客服对话质检系统 v3.2
 AI Customer Service Conversation Quality Evaluator
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek V4 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + Plotly + Multi-LLM
 """
 
@@ -49,7 +49,7 @@ MODELS = {
         "speed": "🚀 快（本地）", "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek V4", "provider": "DeepSeek", "icon": "🐋",
+        "name": "DeepSeek-V3", "provider": "DeepSeek", "icon": "🐋",
         "model_id": "deepseek-chat", "key_required": True, "key_name": "DEEPSEEK_API_KEY",
         "base_url": "https://api.deepseek.com", "sdk_type": "openai",
         "description": "中文能力最强", "speed": "⚡ 较快", "cost": "¥1/百万tokens",
@@ -301,6 +301,34 @@ def llm_evaluate(conversation, model_key, client):
         return None
 
 
+@st.cache_data(show_spinner=False)
+def _load_eval_snapshot():
+    """加载预置质检快照（基于真实 DeepSeek 输出），按对话文本索引。无文件返回 {}。"""
+    path = os.path.join(os.path.dirname(__file__), "ai_snapshot.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("results", {})
+    except Exception:
+        return {}
+
+
+def eval_or_snapshot(conversation, model_key, client):
+    """有 client 走实时 LLM；无 client 时按对话文本回退到预置快照。
+
+    返回 (llm_res, is_snapshot)。两者都没有则 (None, False)。
+    """
+    if client:
+        return llm_evaluate(conversation, model_key, client), False
+    snap = _load_eval_snapshot()
+    res = snap.get(conversation)
+    if res and all(d in res for d in EVALUATION_DIMENSIONS):
+        return res, True
+    return None, False
+
+
 # ═══════════════════════════════════════════════════════════
 # 工具函数
 # ═══════════════════════════════════════════════════════════
@@ -543,13 +571,16 @@ def show_single(conv_text, model_key, client):
 
     # AI 引擎
     llm_res = None
-    if not is_rule and client:
+    used_snapshot = False
+    if not is_rule:
         with st.spinner(f"🤖 {MODELS[model_key]['name']} 评估中..."):
-            llm_res = llm_evaluate(conv_text, model_key, client)
+            llm_res, used_snapshot = eval_or_snapshot(conv_text, model_key, client)
 
     # 展示
     if is_rule:
         st.success("🔧 关键词规则引擎评估完成")
+    elif used_snapshot:
+        st.info("💡 当前未配置 API Key，下方 AI 评估为**预置样例**（基于真实 DeepSeek-V3 输出）。配置 Key 后可实时评估任意对话。")
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -651,8 +682,8 @@ def show_batch(conversations, model_key, client):
                     row[d] = rule_res[d]["score"]
 
                 # AI 评估
-                if not is_rule and client:
-                    llm_res = llm_evaluate(conv["text"], model_key, client)
+                if not is_rule:
+                    llm_res, _ = eval_or_snapshot(conv["text"], model_key, client)
                     if llm_res and all(d in llm_res for d in EVALUATION_DIMENSIONS):
                         row["AI总分"] = calc_total(llm_res)
                         for d in EVALUATION_DIMENSIONS:
@@ -881,6 +912,8 @@ def main():
         if not cfg["key_required"] and cfg["sdk_type"] != "rule" and not client:
             st.warning("⚠️ Ollama 未就绪，使用规则引擎评估")
             client = None
+        elif cfg["key_required"] and not client and _load_eval_snapshot():
+            st.info("💡 当前未配置 API Key，AI 列为**预置样例**（基于真实 DeepSeek-V3 输出）。配置 Key 后可实时评估。")
         show_batch(convos, sel, client)
 
 
