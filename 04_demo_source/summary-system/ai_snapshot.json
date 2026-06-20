@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "model": "DeepSeek-V3 (deepseek-chat)",
+    "model": "DeepSeek Chat (deepseek-chat)",
     "generated_at": "2026-06-21",
     "sample_count": 15,
     "failed": 0,

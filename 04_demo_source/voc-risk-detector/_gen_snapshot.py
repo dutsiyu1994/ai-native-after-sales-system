@@ -79,7 +79,7 @@ anchors = [t for t in texts if ("999" in t and "纯银" in t) or "台湾集运" 
 
 out = {
     "_meta": {
-        "model": "DeepSeek-V3 (deepseek-chat)",
+        "model": "DeepSeek Chat (deepseek-chat)",
         "generated_at": date.today().isoformat(),
         "input_count": len(texts),
         "anchors": anchors,

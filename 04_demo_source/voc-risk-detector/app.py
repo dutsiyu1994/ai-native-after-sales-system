@@ -3,7 +3,7 @@ VOC批量异常风险识别与预警系统 v3.2
 VOC Batch Anomaly Detection & Risk Alert System
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek Chat | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + scikit-learn + Plotly + Multi-LLM
 """
 
@@ -81,7 +81,7 @@ MODELS = {
         "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek-V3",
+        "name": "DeepSeek Chat",
         "provider": "DeepSeek",
         "icon": "🐋",
         "model_id": "deepseek-chat",
@@ -564,7 +564,7 @@ VERSION_HISTORY = [
         "changes": [
             "新增 Ollama Qwen2.5 本地模型支持（免费，无需 Key）",
             "新增 Gemini 2.0 Flash / Groq Llama 3.3 免费 API 选项",
-            "新增 DeepSeek-V3 选项",
+            "新增 DeepSeek Chat 选项",
             "新增 AI 语义聚类引擎，替代纯统计聚类",
             "新增 AI 预警建议生成（根因分析+响应方案）",
             "侧边栏模型选择器，一键切换引擎",
@@ -1421,7 +1421,7 @@ def main():
                 ai_clusters = snap_clusters
                 st.info(
                     f"💡 当前未配置 API Key，下方 AI 语义聚类为**预置样例**"
-                    f"（基于真实 {snap_meta.get('model', 'DeepSeek-V3')} 输出，"
+                    f"（基于真实 {snap_meta.get('model', 'DeepSeek Chat')} 输出，"
                     f"{snap_meta.get('generated_at', '')} 生成）。配置 Key 后可实时分析任意数据。"
                 )
             elif cfg["key_required"]:

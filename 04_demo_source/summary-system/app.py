@@ -3,7 +3,7 @@
 AI-Powered Summary & Digest System
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek Chat | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + Plotly + Multi-LLM
 """
 
@@ -50,7 +50,7 @@ MODELS = {
         "description": "本地运行，完全免费", "speed": "🚀 快", "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek-V3", "provider": "DeepSeek", "icon": "🐋",
+        "name": "DeepSeek Chat", "provider": "DeepSeek", "icon": "🐋",
         "model_id": "deepseek-chat", "key_required": True, "key_name": "DEEPSEEK_API_KEY",
         "base_url": "https://api.deepseek.com", "sdk_type": "openai",
         "description": "中文能力最强", "speed": "⚡ 较快", "cost": "¥1/百万tokens",
@@ -1070,7 +1070,7 @@ def show_single_analysis(data_item, model_key, client):
         st.text(text)
     st.caption(f"原文 {len(text)} 字")
     if used_snapshot:
-        st.info("💡 当前未配置 API Key，AI 摘要为**预置样例**（基于真实 DeepSeek-V3 输出）。配置 Key 后可实时摘要任意文本。")
+        st.info("💡 当前未配置 API Key，AI 摘要为**预置样例**（基于真实 DeepSeek Chat 输出）。配置 Key 后可实时摘要任意文本。")
 
     if is_rule or not ai_res:
         # 仅规则引擎时：单引擎 + 差异高亮 + 评分

@@ -3,7 +3,7 @@
 Complaint Intelligent Classification & Suggestion System
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek Chat | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + pandas + Plotly + Multi-LLM
 """
 
@@ -66,7 +66,7 @@ MODELS = {
         "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek-V3",
+        "name": "DeepSeek Chat",
         "provider": "DeepSeek",
         "icon": "🐋",
         "model_id": "deepseek-chat",
@@ -676,7 +676,7 @@ VERSION_HISTORY = [
             "新增 Ollama 本地模型支持（Qwen2.5 3B），完全免费无需 API Key",
             "新增 Gemini 2.0 Flash 模型接入（Google 免费额度）",
             "新增 Groq Llama 3.3 模型接入（免费 30次/分钟）",
-            "保留 DeepSeek-V3 模型选项",
+            "保留 DeepSeek Chat 模型选项",
             "侧边栏模型选择器，一键切换四种 AI 引擎",
             "自动检测本地 Ollama 运行状态和模型可用性",
         ],
@@ -688,7 +688,7 @@ VERSION_HISTORY = [
         "date": "2026-05-20",
         "title": "双引擎对比架构",
         "changes": [
-            "接入 DeepSeek-V3 实现真正的 LLM 语义分类（替代占位符开关）",
+            "接入 DeepSeek Chat 实现真正的 LLM 语义分类（替代占位符开关）",
             "新增双引擎并排对比模式：关键词规则 vs AI 语义",
             "LLM 生成个性化处理建议（替代固定模板口径）",
             "新增 AI 语义聚类批量异常检测",
@@ -1484,7 +1484,7 @@ def main():
                 meta = snapshot.get("_meta", {})
                 st.info(
                     f"💡 当前未配置 API Key，下方 AI 结果为**预置样例**"
-                    f"（基于真实 {meta.get('model', 'DeepSeek-V3')} 输出，"
+                    f"（基于真实 {meta.get('model', 'DeepSeek Chat')} 输出，"
                     f"{meta.get('generated_at', '')} 生成）。配置 Key 后即可实时分析任意数据。"
                 )
             elif config["key_required"]:

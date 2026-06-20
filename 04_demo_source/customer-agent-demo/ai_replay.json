@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "model": "DeepSeek-V3 (deepseek-chat)",
+    "model": "DeepSeek Chat (deepseek-chat)",
     "generated_at": "2026-06-21",
     "turns": 3,
     "note": "preset multi-turn replay from real DeepSeek output; shown on first load when no API key"

@@ -3,7 +3,7 @@ AI客服对话质检系统 v3.2
 AI Customer Service Conversation Quality Evaluator
 
 独立作品 — 多模型 AI 引擎架构
-支持: Ollama(本地免费) | DeepSeek-V3 | Gemini 2.0 Flash(免费) | Groq(免费)
+支持: Ollama(本地免费) | DeepSeek Chat | Gemini 2.0 Flash(免费) | Groq(免费)
 技术栈: Python + Streamlit + Plotly + Multi-LLM
 """
 
@@ -49,7 +49,7 @@ MODELS = {
         "speed": "🚀 快（本地）", "cost": "免费",
     },
     "deepseek": {
-        "name": "DeepSeek-V3", "provider": "DeepSeek", "icon": "🐋",
+        "name": "DeepSeek Chat", "provider": "DeepSeek", "icon": "🐋",
         "model_id": "deepseek-chat", "key_required": True, "key_name": "DEEPSEEK_API_KEY",
         "base_url": "https://api.deepseek.com", "sdk_type": "openai",
         "description": "中文能力最强", "speed": "⚡ 较快", "cost": "¥1/百万tokens",
@@ -580,7 +580,7 @@ def show_single(conv_text, model_key, client):
     if is_rule:
         st.success("🔧 关键词规则引擎评估完成")
     elif used_snapshot:
-        st.info("💡 当前未配置 API Key，下方 AI 评估为**预置样例**（基于真实 DeepSeek-V3 输出）。配置 Key 后可实时评估任意对话。")
+        st.info("💡 当前未配置 API Key，下方 AI 评估为**预置样例**（基于真实 DeepSeek Chat 输出）。配置 Key 后可实时评估任意对话。")
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -913,7 +913,7 @@ def main():
             st.warning("⚠️ Ollama 未就绪，使用规则引擎评估")
             client = None
         elif cfg["key_required"] and not client and _load_eval_snapshot():
-            st.info("💡 当前未配置 API Key，AI 列为**预置样例**（基于真实 DeepSeek-V3 输出）。配置 Key 后可实时评估。")
+            st.info("💡 当前未配置 API Key，AI 列为**预置样例**（基于真实 DeepSeek Chat 输出）。配置 Key 后可实时评估。")
         show_batch(convos, sel, client)
 
 

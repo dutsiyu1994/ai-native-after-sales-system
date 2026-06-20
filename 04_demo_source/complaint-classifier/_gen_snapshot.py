@@ -101,7 +101,7 @@ for i, (_, row) in enumerate(df.iterrows()):
 
 out = {
     "_meta": {
-        "model": "DeepSeek-V3 (deepseek-chat)",
+        "model": "DeepSeek Chat (deepseek-chat)",
         "generated_at": date.today().isoformat(),
         "sample_count": len(df),
         "failed": fail,

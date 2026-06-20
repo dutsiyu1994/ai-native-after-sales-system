@@ -97,7 +97,7 @@ for k in replay_keys:
 
 out = {
     "_meta": {
-        "model": "DeepSeek-V3 (deepseek-chat)",
+        "model": "DeepSeek Chat (deepseek-chat)",
         "generated_at": date.today().isoformat(),
         "turns": len(turns),
         "note": "preset multi-turn replay from real DeepSeek output; shown on first load when no API key",

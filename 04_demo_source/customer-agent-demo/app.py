@@ -80,7 +80,7 @@ def get_api_key() -> str | None:
 # ---------- LLM provider configs ----------
 LLM_PROVIDERS = {
     "deepseek": {
-        "name": "DeepSeek-V3",
+        "name": "DeepSeek Chat",
         "icon": "🐋",
         "model": "deepseek-chat",
         "base_url": "https://api.deepseek.com/v1",
