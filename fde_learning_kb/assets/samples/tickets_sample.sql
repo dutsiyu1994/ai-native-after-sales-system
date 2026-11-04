@@ -1,5 +1,6 @@
--- 样本库：售后工单（SQLite 可直接执行）
--- 业务含义：模拟客服工单主表，供第1—2周 SQL 练习使用
+-- 样本库：默认学习案例「客服工单」（SQLite 可直接执行）
+-- 说明：非课程业务锚点；可按同构字段替换为订单/线索/审批等
+-- 业务含义：模拟「待处理事项」主表 + 主体表，供第1—2周 SQL 练习使用
 
 DROP TABLE IF EXISTS tickets;
 DROP TABLE IF EXISTS customers;
