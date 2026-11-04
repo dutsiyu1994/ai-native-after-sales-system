@@ -36,3 +36,10 @@ The demos keep rule-based fallback paths where available.
 ## Not Included
 
 Personal job-search documents, resumes, interview packages, local logs, and agent memory files are intentionally excluded.
+
+## FDE Learning Knowledge Base
+
+Zero-to-closed-loop curriculum for Forward Deployed Engineers (beginner-friendly, atomic Markdown cards):
+
+- Entry: [`fde_learning_kb/README.md`](./fde_learning_kb/README.md)
+- Current package: `v0.1.0-week1` (outline + Week 1 full cards)
